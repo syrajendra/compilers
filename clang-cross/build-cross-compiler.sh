@@ -672,7 +672,7 @@ check_arguments() {
 			name=`basename $BINUTILS_REPO`
 		elif [ "$binutils" = "no" ]; then
 			WHICH_BINUTILS="no_"
-			echo "WARN: No clang cross compiler will be built"
+			echo "WARN: No targets for clang cross compiler"
 		elif [ "$binutils" = "" ]; then
 			if [ $WHICH_BINUTILS = "new_" ]; then
 				name=`basename $NEW_BINUTILS_REPO`
@@ -697,7 +697,9 @@ check_arguments() {
 			get_${WHICH_BINUTILS}binutils
 			check_target_triplet "$targets" "$SRC/$reponame"
 		else
-			TARGETS=$BINUTILS_TARGETS
+			if [ $WHICH_BINUTILS != "no_" ]; then
+				TARGETS=$BINUTILS_TARGETS
+			fi
 		fi
 	fi
 
