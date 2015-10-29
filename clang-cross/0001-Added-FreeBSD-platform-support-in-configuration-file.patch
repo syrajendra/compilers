@@ -1,0 +1,65 @@
+From f87fdf110a84982427ee1b7849a2d81e36868b13 Mon Sep 17 00:00:00 2001
+From: syrajendra <rajendra.sy@gmail.com>
+Date: Wed, 30 Sep 2015 11:33:26 +0530
+Subject: [PATCH] Added FreeBSD platform support in configuration files
+
+Signed-off-by: syrajendra <rajendra.sy@gmail.com>
+---
+ bfd/config.bfd   | 4 ++--
+ config.sub       | 2 +-
+ ld/configure.tgt | 4 +++-
+ 3 files changed, 6 insertions(+), 4 deletions(-)
+
+diff --git a/bfd/config.bfd b/bfd/config.bfd
+index 5324d39..7476a44 100644
+--- a/bfd/config.bfd
++++ b/bfd/config.bfd
+@@ -323,7 +323,7 @@ case "${targ}" in
+     targ_defvec=bfd_elf32_littlearm_vec
+     targ_selvecs=bfd_elf32_bigarm_vec
+     ;;
+-  armeb-*-elf | arm*b-*-linux-*)
++  armeb-*-elf | arm*b-*-freebsd* | arm*b-*-linux-*)
+     targ_defvec=bfd_elf32_bigarm_vec
+     targ_selvecs=bfd_elf32_littlearm_vec
+     ;;
+@@ -331,7 +331,7 @@ case "${targ}" in
+     targ_defvec=bfd_elf32_littlearm_vec
+     targ_selvecs=bfd_elf32_bigarm_vec
+     ;;
+-  arm-*-elf | arm-*-freebsd* | arm*-*-linux-* | arm*-*-conix* | \
++  arm-*-elf | arm*-*-freebsd* | arm*-*-linux-* | arm*-*-conix* | \
+   arm*-*-uclinux* | arm-*-kfreebsd*-gnu | \
+   arm*-*-eabi* )
+     targ_defvec=bfd_elf32_littlearm_vec
+diff --git a/config.sub b/config.sub
+index 8b612ab..57ec826 100755
+--- a/config.sub
++++ b/config.sub
+@@ -117,7 +117,7 @@ maybe_os=`echo $1 | sed 's/^\(.*\)-\([^-]*-[^-]*\)$/\2/'`
+ case $maybe_os in
+   nto-qnx* | linux-gnu* | linux-android* | linux-dietlibc | linux-newlib* | \
+   linux-musl* | linux-uclibc* | uclinux-uclibc* | uclinux-gnu* | kfreebsd*-gnu* | \
+-  knetbsd*-gnu* | netbsd*-gnu* | \
++  knetbsd*-gnu* | netbsd*-gnu* | freebsd*-gnu* | \
+   kopensolaris*-gnu* | \
+   storm-chaos* | os2-emx* | rtmk-nova*)
+     os=-$maybe_os
+diff --git a/ld/configure.tgt b/ld/configure.tgt
+index c0291c8..5912518 100644
+--- a/ld/configure.tgt
++++ b/ld/configure.tgt
+@@ -79,7 +79,9 @@ arm-*-pe)		targ_emul=armpe ; targ_extra_ofiles="deffilep.o pe-dll.o" ;;
+ arm-*-aout | armel-*-aout) targ_emul=armaoutl ;;
+ armeb-*-aout)		targ_emul=armaoutb ;;
+ arm-*-coff)		targ_emul=armcoff ;;
+-arm-*-freebsd* | arm-*-kfreebsd*-gnu)
++arm*b-*-freebsd*)	targ_emul=armelfb_fbsd
++			targ_extra_emuls="armelf_fbsd armelf" ;;
++arm*-*-freebsd* | arm-*-kfreebsd*-gnu)
+ 	       		targ_emul=armelf_fbsd
+ 			targ_extra_emuls="armelf" ;;
+ armeb-*-netbsdelf*)	targ_emul=armelfb_nbsd;
+-- 
+2.4.6
+
