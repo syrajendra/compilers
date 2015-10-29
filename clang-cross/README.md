@@ -41,7 +41,7 @@
     BUILD MULTIPLE TARGETS
 	$ ./build-cross-compiler.sh -b=binutils -r=3.7.0 -t=avr-unknown-none,arm-none-eabi
 
-	BUILD WITH NINJA
+	BUILD WITHOUT NINJA
 	$ ./build-cross-compiler.sh -b=binutils -r=3.7.0 -t=avr-unknown-none,arm-none-eabi -n=no
 
 	BUILD LLVM/CLANG HEAD
