@@ -213,9 +213,23 @@ get_new_binutils() {
 	fi
 }
 
+check_compiler_exist() {
+	cc=$1
+	if [ ! -f $cc ]; then
+		echo "ERROR: Compiler $cc does not exist. Build compiler before library"
+		exit 1
+	fi
+	if [ ! -x $cc ]; then
+		echo "ERROR: Compiler $cc is not executable. Build compiler correctly"
+		exit 1
+	fi
+}
+
 build_new_binutils() {
 	arg=$1
 	installpath=$2
+	check_compiler_exist "$CC"
+	check_compiler_exist "$CXX"
 	pre=`basename $installpath | sed s/install//g | xargs`
 	installpath="$installpath/$arg"
 	mkdir -p $installpath
@@ -260,6 +274,8 @@ get_old_binutils() {
 build_old_binutils() {
 	arg=$1
 	installpath=$2
+	check_compiler_exist "$CC"
+	check_compiler_exist "$CXX"
 	pre=`basename $installpath | sed s/install//g | xargs`
 	installpath="$installpath/$arg"
 	mkdir -p $installpath
@@ -365,10 +381,40 @@ no_build_llvm() {
 	echo "--- No LLVM/Clang built ---"
 }
 
+debug_prints() {
+	echo "CC: $CC"
+	echo "CXX: $CXX"
+	echo "CXXFLAGS: $CXXFLAGS"
+	echo "LDFLAGS: $LDFLAGS"
+	echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
+}
+
+fire_build_cmd() {
+	pre=$1
+	reponame=$2
+	reposrc=$3
+	cmake_opts=$4
+	echo ""
+	echo "--- Building $pre $reponame ---"
+	echo "PWD: $PWD"
+	debug_prints
+	if [ $NINJA = 1 ]; then
+		execute "cmake $reposrc -G Ninja  $cmake_opts" "$LOG/ninja-configure-${pre}${reponame}.log"
+		execute "ninja" "$LOG/ninja-build-${pre}${reponame}.log"
+		execute "ninja install" "$LOG/ninja-install-${pre}${reponame}.log"
+	else
+		execute "cmake $reposrc -G \"Unix Makefiles\"  $cmake_opts" "$LOG/make-configure-${pre}${reponame}.log"
+		execute "gmake -j $CPUS" "$LOG/make-build-${pre}${reponame}.log"
+		execute "gmake install" "$LOG/make-install-${pre}${reponame}.log"
+	fi
+}
+
 build_llvm() {
 	arg=$1
 	srcarg=`echo $arg | sed 's,^[^/]*/,,'`
 	installpath=$2
+	check_compiler_exist "$CC"
+	check_compiler_exist "$CXX"
 	reponame="llvm"
 	pre=`basename $installpath | sed s/install//g | xargs`
 	installpath="$installpath/$arg"
@@ -378,34 +424,18 @@ build_llvm() {
 			echo "INFO: LLVM/Clang is already built skipping. To rebuild specify option -a|--action=clean-build"
 			echo "INFO: Installed @ $installpath"
 			return
-		else
-			rm -rf $builddir
 		fi
+	fi
+
+	if [ -d $builddir ]; then
+		rm -rf $builddir
 	fi
 	mkdir -p $builddir
 	cd $builddir
-	if [ $NINJA = 1 ]; then
-		execute "cmake $SRC/$srcarg/$reponame -G Ninja -DCMAKE_INSTALL_PREFIX=${installpath} -DCMAKE_BUILD_TYPE=${BUILD_TYPE}" "$LOG/ninja-configure-${pre}${reponame}.log"
-		execute "ninja" "$LOG/ninja-build-${pre}${reponame}.log"
-		execute "ninja install" "$LOG/ninja-install-${pre}${reponame}.log"
-	else
-		execute "cmake $SRC/$srcarg/$reponame -G \"Unix Makefiles\" -DCMAKE_INSTALL_PREFIX=${installpath} -DCMAKE_BUILD_TYPE=${BUILD_TYPE}" "$LOG/make-configure-${pre}${reponame}.log"
-		execute "gmake -j $CPUS" "$LOG/make-build-${pre}${reponame}.log"
-		execute "gmake install" "$LOG/make-install-${pre}${reponame}.log"
-	fi
+	reposrc="$SRC/$srcarg/$reponame"
+	cmake_opts="-DCMAKE_INSTALL_PREFIX=${installpath} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ${LLVM_EXTRA_CONFIG}"
+	fire_build_cmd "$pre" "$reponame" "$reposrc" "$cmake_opts"
 	cd -
-}
-
-check_compiler_exist() {
-	cc=$1
-	if [ ! -f $cc ]; then
-		echo "ERROR: Compiler $cc does not exist. Build compiler before library"
-		exit 1
-	fi
-	if [ ! -x $cc ]; then
-		echo "ERROR: Compiler $cc is not executable. Build compiler correctly"
-		exit 1
-	fi
 }
 
 check_sysroot_exist() {
@@ -417,32 +447,92 @@ check_sysroot_exist() {
 	SYSROOT_TARGETS=`cd $sysroot && find * -maxdepth 0 -type d | tr '\n' ' ' && cd -`
 }
 
+build_libcxxrt() {
+	pre=$1
+	reponame=$2
+	reposrc=$3
+	installpath=$4
+	toprepo=`dirname $reposrc`
+	cmake_opts="-DCMAKE_INSTALL_PREFIX=${installpath} \
+				-DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
+				-DLLVM_PATH=${toprepo}/llvm \
+				-DLLVM_CONFIG=${installpath}/bin/llvm-config \
+				-DLIBCXXABI_LIBCXX_PATH=${toprepo}/libcxx \
+				-DCMAKE_POLICY_DEFAULT_CMP0056=NEW "
+	fire_build_cmd "$pre" "$reponame" "$reposrc" "$cmake_opts"
+}
+
+
+build_libcxxabi() {
+	pre=$1
+	reponame=$2
+	reposrc=$3
+	installpath=$4
+	toprepo=`dirname $reposrc`
+	cmake_opts="-DCMAKE_INSTALL_PREFIX=${installpath} \
+				-DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
+				-DLLVM_PATH=${toprepo}/llvm \
+				-DLLVM_CONFIG=${installpath}/bin/llvm-config \
+				-DLIBCXXABI_LIBCXX_PATH=${toprepo}/libcxx"
+	fire_build_cmd "$pre" "$reponame" "$reposrc" "$cmake_opts"
+}
+
+build_libcxx() {
+	pre=$1
+	reponame=$2
+	reposrc=$3
+	installpath=$4
+	toprepo=`dirname $reposrc`
+	cmake_opts="-DCMAKE_INSTALL_PREFIX=${installpath} \
+				-DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
+				-DLLVM_PATH=${toprepo}/llvm \
+				-DLIBCXX_CXX_ABI=libcxxabi \
+				-DLIBCXX_CXX_ABI_INCLUDE_PATHS=${toprepo}/libcxxabi/include"
+	fire_build_cmd "$pre" "$reponame" "$reposrc" "$cmake_opts"
+}
+
 build_compiler_rt() {
 	pre=$1
 	reponame=$2
 	reposrc=$3
 	installpath=$4
-	if [ $NINJA = 1 ]; then
-		execute "cmake $reposrc -G Ninja -DCMAKE_INSTALL_PREFIX=${installpath} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCOMPILER_RT_INSTALL_PATH=${installpath}/lib/clang/ -DLLVM_CONFIG_PATH=${installpath}/bin/llvm-config" "$LOG/ninja-configure-${pre}${reponame}.log"
-		execute "ninja" "$LOG/ninja-build-${pre}${reponame}.log"
-		execute "ninja install" "$LOG/ninja-install-${pre}${reponame}.log"
+	cmake_opts="-DCMAKE_INSTALL_PREFIX=${installpath} \
+				-DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
+				-DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+				-DCOMPILER_RT_INSTALL_PATH=${installpath}/lib/clang/ \
+				-DLLVM_CONFIG=${installpath}/bin/llvm-config \
+				-DLLVM_CONFIG_PATH=${installpath}/bin/llvm-config"
+	fire_build_cmd "$pre" "$reponame" "$reposrc" "$cmake_opts"
+}
+
+trigger_library_download() {
+	revision=$1
+	libname=$2
+	LLVM_SOURCES="$LLVM_SOURCES $libname"
+	if [ $revision = "head" ]; then
+		get_llvm_infra
 	else
-		execute "cmake $reposrc -G \"Unix Makefiles\" -DCMAKE_INSTALL_PREFIX=${installpath} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCOMPILER_RT_INSTALL_PATH=${installpath}/lib/clang/ -DLLVM_CONFIG_PATH=${installpath}/bin/llvm-config" "$LOG/make-configure-${pre}${reponame}.log"
-		execute "gmake -j $CPUS" "$LOG/make-build-${pre}${reponame}.log"
-		execute "gmake install" "$LOG/make-install-${pre}${reponame}.log"
+		download_llvm_release_src $revision
 	fi
+}
+
+download_libcxxrt() {
+	revision=$1
+	echo "ERROR: Implement this download_libcxxrt function"
+	exit 1
 }
 
 build_library() {
 	arg=$1
+	revision=`basename $arg`
 	installpath=$2
 	reponame=$3
+	trigger_library_download "$revision" "$reponame"
 	srcarg=`echo $arg | sed 's,^[^/]*/,,'`
 	pre=`basename $installpath | sed s/install//g | xargs`
 	installpath=${installpath}/$arg
-	export CC="$installpath/bin/clang"
-	export CXX="$installpath/bin/clang"
 	check_compiler_exist "$CC"
+	check_compiler_exist "$CXX"
 	builddir="$BUILD/$PLATFORM/$reponame/$arg/${pre}build"
 	if [ -d $builddir ] && [ $REBUILD = "1" ]; then
 		rm -rf $builddir
@@ -455,8 +545,10 @@ build_library() {
 	if [ $reponame = "compiler-rt" ]; then
 		build_compiler_rt "$pre" "$reponame" "$SRC/$srcarg/$reponame" "$installpath"
 	elif [ $reponame = "libcxx" ]; then
+		trigger_library_download "$revision" "libcxxabi"
 		build_libcxx "$pre" "$reponame" "$SRC/$srcarg/$reponame" "$installpath"
 	elif [ $reponame = "libcxxabi" ]; then
+		trigger_library_download "$revision" "libcxx"
 		build_libcxxabi "$pre" "$reponame" "$SRC/$srcarg/$reponame" "$installpath"
 	elif [ $reponame = "libcxxrt" ]; then
 		download_libcxxrt "$revision"
@@ -469,8 +561,62 @@ build_library() {
 	fi
 }
 
+export_gcc_compiler() {
+	GCC=$(run "which gcc")
+	GPP=$(run "which g++")
+	echo "Found GCC - $GCC"
+	gcc_version=`$GCC --version | grep gcc | sed s/.*\)//g | xargs`
+	check_version "GCC" "4.7.0" "$gcc_version"
+	export CC=$GCC
+	export CXX=$GPP
+}
+
+export_clang_compiler() {
+	CLANG=$(run "which clang")
+	CLANGPP=$(run "which clang++")
+	echo "Found CLANG - $CLANG"
+	export CC=${CLANG}
+	export CXX=${CLANGPP}
+}
+
+llvm_build_depedent_libraries() {
+	release=$1
+	linstallpath=$2
+	build_library "${WHICH_BINUTILS}binutils/$release" "$linstallpath" "libcxxabi"
+	export LD_LIBRARY_PATH=${linstallpath}/${WHICH_BINUTILS}binutils/$release/lib:$LD_LIBRARY_PATH
+	export LDFLAGS="-L${linstallpath}/${WHICH_BINUTILS}binutils/$release/lib"
+	build_library "${WHICH_BINUTILS}binutils/$release" "$linstallpath" "libcxx"
+	export LLVM_EXTRA_CONFIG="-DLLVM_ENABLE_LIBCXX=ON -DLLVM_ENABLE_LIBCXXABI=ON -DLLVM_ENABLE_CXX11=ON"
+}
+
+# Required only on Linux
+locate_stdcpp_library() {
+	if [ -z $LIB_STDCPP_PATH ]; then
+		gcc=$1
+		gcc_version=$2
+		machine=`uname -m`
+		guess_path=`dirname $gcc`
+		libname=libstdc++.so
+		if [ -f $guess_path/../lib64/$libname ]; then
+			LIB_STDCPP_PATH=$guess_path/../lib64
+		elif [ -f $guess_path/${machine}-linux-gnu/lib/gcc/$gcc_version/$libname ]; then
+			LIB_STDCPP_PATH=$guess_path/../lib64
+		else
+			echo "ERROR: Failed to guess '$libname' library path. Please set environment variable LIB_STDCPP_PATH"
+			exit 1
+		fi
+    else
+    	if [ ! -f $LIB_STDCPP_PATH/$libname ]; then
+    		echo "ERROR: Failed to locate '$libname' in path '$LIB_STDCPP_PATH'"
+    		exit 1
+    	fi
+    fi
+    export LLVM_EXTRA_CONFIG="$LLVM_EXTRA_CONFIG -DCMAKE_INSTALL_RPATH=\$ORIGIN/../lib:\$ORIGIN/"
+}
+
 common() {
 	compiler=$1
+	release=$2
 	arg="${WHICH_BINUTILS}binutils/$2"
 	mkdir -p ${INSTALL}/$arg ${PREINSTALL}/$arg
 
@@ -478,6 +624,7 @@ common() {
 		CLANG=$(run "which clang")
 		clang_version=`$CLANG --version | grep version | sed s/.*version//g | sed s/\(.*//g | xargs`
 		if [ "$clang_version" = "3.4.1" ] ; then
+			export_clang_compiler
 			build_${WHICH_BINUTILS}binutils "$arg" "${PREINSTALL}"
 			# CC: error: unable to execute command: Segmentation fault (core dumped)
 			# CC: error: clang frontend command failed due to signal (use -v to see invocation)
@@ -488,6 +635,8 @@ common() {
 			if [ -f /usr/local/bin/gcc48 ] && [ -f /usr/local/bin/g++48 ]; then
 				export CC=/usr/local/bin/gcc48
 				export CXX=/usr/local/bin/g++48
+				#llvm_build_depedent_libraries "$release" "$PREINSTALL"
+				#export LDFLAGS="-B${PREINSTALL}/${WHICH_BINUTILS}binutils/$release/lib"
 				${compiler}build_llvm $arg "${PREINSTALL}"
 			else
 				echo "ERROR: Install newer gcc48 from ports to build. CMD: pkg install lang/gcc48"
@@ -497,8 +646,7 @@ common() {
 			CLANG=$(run "which clang")
 			clang_version=`$CLANG --version | grep version | sed s/.*version//g | sed s/\(.*//g | xargs`
 			if [ "$clang_version" != "3.4.1" ] ; then
-				export CC=${CLANG}
-				export CXX=${CLANG}++
+				export_clang_compiler
 				build_${WHICH_BINUTILS}binutils "$arg" "${INSTALL}"
 				${compiler}build_llvm $arg "${INSTALL}"
 			else
@@ -506,33 +654,28 @@ common() {
 				exit 1
 			fi
 		else # if clang is higher than 3.4.1
-			export CC=${CLANG}
-			export CXX=${CLANG}++
+			export_clang_compiler
 			build_${WHICH_BINUTILS}binutils "$arg" "${INSTALL}"
 			${compiler}build_llvm $arg "${INSTALL}"
 		fi
 	elif [ "$PLATFORM" = "Linux" ]; then
 		# First build with GCC & then with clang
-		GCC=$(run "which gcc")
-		GPP=$(run "which g++")
-		echo "Found GCC - $GCC"
-		gcc_version=`$GCC --version | grep gcc | sed s/.*\)//g | xargs`
-		check_version "GCC" "4.7.0" "$gcc_version"
-		export CC=$GCC
-		export CXX=$GPP
+		export_gcc_compiler
+		llvm_build_depedent_libraries "$release" "$PREINSTALL"
+		export LDFLAGS="-B${PREINSTALL}/${WHICH_BINUTILS}binutils/$release/lib"
 		build_${WHICH_BINUTILS}binutils "$arg" "${PREINSTALL}"
 		${compiler}build_llvm $arg "${PREINSTALL}"
 
 		export PATH=${PREINSTALL}/$arg/bin:$PATH
-		CLANG=$(run "which clang")
-		export CC=${CLANG}
-		export CXX=${CLANG}++
+		# Need libstdc++.so lib to build clang using clang
+		locate_stdcpp_library
+		export_clang_compiler
+		#export CXXFLAGS="-stdlib=libc++"
+		#export LDFLAGS="-L${INSTALL}/${WHICH_BINUTILS}binutils/$release/lib -llibc++abi"
 		build_${WHICH_BINUTILS}binutils "$arg" "${INSTALL}"
 		${compiler}build_llvm $arg "${INSTALL}"
 	elif [ "$PLATFORM" = "Darwin" ]; then
-		CLANG=$(run "which clang")
-		export CC=${CLANG}
-		export CXX=${CLANG}++
+		export_clang_compiler
 		build_${WHICH_BINUTILS}binutils "$arg" "${INSTALL}"
 		${compiler}build_llvm $arg "${INSTALL}"
 	else
@@ -662,7 +805,7 @@ check_arguments() {
 		fi
 	fi
 
-	if [ "$build" = "binutils" ] || [ "$build" = "compiler" ]; then
+	#if [ "$build" = "binutils" ] || [ "$build" = "compiler"  ]; then
 		name=""
 		if   [ "$binutils" = "new" ]; then
 			WHICH_BINUTILS="new_"
@@ -701,7 +844,7 @@ check_arguments() {
 				TARGETS=$BINUTILS_TARGETS
 			fi
 		fi
-	fi
+	#fi
 
 	if [ "$ninja" = "yes" ]; then
 		tool_check "ninja" "yes"
@@ -756,23 +899,6 @@ usage() {
 	echo "  -n|--ninja= 	 : 'yes' or 'no'"
 	echo "  -h|--help	 : Shows this help"
 	exit 0
-}
-
-trigger_library_download() {
-	revision=$1
-	libname=$2
-	LLVM_SOURCES="$LLVM_SOURCES $libname"
-	if [ $revision = "head" ]; then
-		get_llvm_infra
-	else
-		download_llvm_release_src $revision
-	fi
-}
-
-download_libcxxrt() {
-	revision=$1
-	echo "Implement this func"
-	exit 1
 }
 
 # Parse arguments
@@ -834,16 +960,30 @@ else
 		if [ $revision = "head" ]; then
 			binutils_head_build
 		else
-			binutils_release_build $revision
+			binutils_release_build "$revision"
 		fi
 	elif [ $build = "compiler" ]; then
 		if [ $revision = "head" ]; then
 			compiler_head_build
 		else
-			compiler_release_build $revision
+			compiler_release_build "$revision"
 		fi
 	elif [ $build = "library" ]; then
-		trigger_library_download "$revision" "$libname"
+		if [ $revision = "head" ]; then
+			export CC="$INSTALL/${WHICH_BINUTILS}binutils/head/bin/clang"
+			export CXX="$INSTALL/${WHICH_BINUTILS}binutils/head/bin/clang++"
+			export LDFLAGS="-L${INSTALL}/${WHICH_BINUTILS}binutils/head/lib"
+		else
+			export CC="$INSTALL/${WHICH_BINUTILS}binutils/release/$revision/bin/clang"
+			export CXX="$INSTALL/${WHICH_BINUTILS}binutils/release/$revision/bin/clang++"
+			export LDFLAGS="-L${INSTALL}/${WHICH_BINUTILS}binutils/release/$revision/lib"
+		fi
+		if [ $libname = "libcxx" ]; then
+			if [ ! -f "${INSTALL}/${WHICH_BINUTILS}binutils/release/$revision/lib/libc++abi.so" ]; then
+				echo "ERROR: Build library libcxxabi before libcxx"
+				exit 1
+			fi
+		fi
 		build_library "${WHICH_BINUTILS}binutils/release/$revision" "$INSTALL" "$libname"
 	fi
 fi
