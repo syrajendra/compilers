@@ -1,5 +1,6 @@
 #!/bin/sh
 
+VERSION="1.0"
 TOP=$PWD
 PLATFORM=`uname`
 SRC=${TOP}/src
@@ -309,7 +310,7 @@ build_old_binutils() {
 }
 
 get_no_binutils() {
-	echo "--- No Binutils built ---"
+	echo "--- No Binutils get ---"
 }
 
 build_no_binutils() {
@@ -565,8 +566,8 @@ export_gcc_compiler() {
 	GCC=$(run "which gcc")
 	GPP=$(run "which g++")
 	echo "Found GCC - $GCC"
-	gcc_version=`$GCC --version | grep gcc | sed s/.*\)//g | xargs`
-	check_version "GCC" "4.7.0" "$gcc_version"
+	GCC_VERSION=`$GCC --version | grep gcc | sed s/.*\)//g | xargs`
+	check_version "GCC" "4.7.0" "$GCC_VERSION"
 	export CC=$GCC
 	export CXX=$GPP
 }
@@ -668,7 +669,7 @@ common() {
 
 		export PATH=${PREINSTALL}/$arg/bin:$PATH
 		# Need libstdc++.so lib to build clang using clang
-		locate_stdcpp_library
+		locate_stdcpp_library "$GCC" "$GCC_VERSION"
 		export_clang_compiler
 		#export CXXFLAGS="-stdlib=libc++"
 		#export LDFLAGS="-L${INSTALL}/${WHICH_BINUTILS}binutils/$release/lib -llibc++abi"
@@ -898,6 +899,7 @@ usage() {
 	echo "  -u|--binutils= : 'new', 'old' or 'no' "
 	echo "  -n|--ninja= 	 : 'yes' or 'no'"
 	echo "  -h|--help	 : Shows this help"
+	echo "  -v|--version   : Shows version number of this script"
 	exit 0
 }
 
@@ -915,6 +917,10 @@ else
 	targets=""
 	for i in "$@"; do
 		case $i in
+			-v|--version)
+				echo "$VERSION"
+				exit 0
+				;;
 			-h|--help)
 				usage $0
 				shift
@@ -985,6 +991,9 @@ else
 			fi
 		fi
 		build_library "${WHICH_BINUTILS}binutils/release/$revision" "$INSTALL" "$libname"
+	else
+		echo "ERROR: Unknown build type $build"
+		exit 1
 	fi
 fi
 
