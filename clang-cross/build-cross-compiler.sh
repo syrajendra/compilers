@@ -98,18 +98,30 @@ LLLVM_CXXRT="https://github.com/pathscale/libcxxrt/"
 if [ "$PLATFORM" = "FreeBSD" ]; then
 	CPUS=`sysctl hw.ncpu | sed s/.*://g | xargs`
 	OS_RELEASE=`freebsd-version`
+	SL_EXT="so"
 	# Clang cross compilers for below targets
 	BINUTILS_TARGETS="x86_64-unknown-freebsd i386-unknown-freebsd armv6--freebsd-gnueabi powerpc-unknown-freebsd avr-unknown-none"
 elif [ "$PLATFORM" = "Linux" ]; then
 	CPUS=`cat /proc/cpuinfo | grep processor | wc -l | xargs`
 	BINUTILS_TARGETS="x86_64-unknown-linux i386-unknown-linux armv6--linux-gnueabi powerpc-unknown-linux avr-unknown-none"
+	SL_EXT="so"
 elif [ "$PLATFORM" = "Darwin" ]; then
 	CPUS=`sysctl hw.ncpu | sed s/.*://g | xargs`
 	BINUTILS_TARGETS="avr-unknown-none x86_64-unknown-darwin"
+	SL_EXT="dylib"
 else
 	echo "ERROR: Build host $PLATFORM not yet supported"
 	exit 1
 fi
+
+is_file_exist() {
+	file_path="$1"
+	if ls "$file_path" 1> /dev/null 2>&1; then
+		echo "1"
+	else
+		echo "0"
+	fi
+}
 
 run() {
 	# No echo's/print's in this function because the last line echo act as a return for this function
@@ -394,17 +406,17 @@ fire_build_cmd() {
 	pre=$1
 	reponame=$2
 	reposrc=$3
-	cmake_opts=$4
+	cmake_opts=`echo $4 | tr -s ' '`
 	echo ""
 	echo "--- Building $pre $reponame ---"
 	echo "PWD: $PWD"
 	#debug_prints
 	if [ $NINJA = 1 ]; then
-		execute "cmake $reposrc -G Ninja  $cmake_opts" "$LOG/ninja-configure-${pre}${reponame}.log"
+		execute "cmake $reposrc -G Ninja  $cmake_opts ${LINUX_EXTRA_CONFIG}" "$LOG/ninja-configure-${pre}${reponame}.log"
 		execute "ninja" "$LOG/ninja-build-${pre}${reponame}.log"
 		execute "ninja install" "$LOG/ninja-install-${pre}${reponame}.log"
 	else
-		execute "cmake $reposrc -G \"Unix Makefiles\"  $cmake_opts" "$LOG/make-configure-${pre}${reponame}.log"
+		execute "cmake $reposrc -G \"Unix Makefiles\"  $cmake_opts ${LINUX_EXTRA_CONFIG}" "$LOG/make-configure-${pre}${reponame}.log"
 		execute "gmake -j $CPUS" "$LOG/make-build-${pre}${reponame}.log"
 		execute "gmake install" "$LOG/make-install-${pre}${reponame}.log"
 	fi
@@ -535,10 +547,11 @@ build_library() {
 	installpath=${installpath}/$arg
 	check_compiler_exist "$CC"
 	check_compiler_exist "$CXX"
+	so_path="$installpath/lib/${reponame}*.{SL_EXT}"
 	builddir="$BUILD/$PLATFORM/$reponame/$arg/${pre}build"
 	if [ -d $builddir ] && [ $REBUILD = "1" ]; then
 		rm -rf $builddir
-	elif [ -d $builddir ] && [ $REBUILD = "0" ]; then
+	elif [ -d $builddir ] && [ $(is_file_exist "$so_path") = "1" ] && [ $REBUILD = "0" ]; then
 		echo "INFO: Library $reponame is already built. To rebuild use option -a|--action=clean-build"
 		return
 	fi
@@ -596,24 +609,26 @@ locate_stdcpp_library() {
 	if [ -z $LIB_STDCPP_PATH ]; then
 		gcc=$1
 		gcc_version=$2
+		linstallpath=$3
 		machine=`uname -m`
 		guess_path=`dirname $gcc`
-		libname=libstdc++.so
-		if [ -f $guess_path/../lib64/$libname ]; then
+		stdlibname=libstdc++.so
+		if [ -f $guess_path/../lib64/$stdlibname ]; then
 			LIB_STDCPP_PATH=$guess_path/../lib64
-		elif [ -f $guess_path/${machine}-linux-gnu/lib/gcc/$gcc_version/$libname ]; then
+		elif [ -f $guess_path/${machine}-linux-gnu/lib/gcc/$gcc_version/$stdlibname ]; then
 			LIB_STDCPP_PATH=$guess_path/../lib64
 		else
-			echo "ERROR: Failed to guess '$libname' library path. Please set environment variable LIB_STDCPP_PATH"
+			echo "ERROR: Failed to guess '$stdlibname' library path. Please set environment variable LIB_STDCPP_PATH"
 			exit 1
 		fi
     else
-    	if [ ! -f $LIB_STDCPP_PATH/$libname ]; then
-    		echo "ERROR: Failed to locate '$libname' in path '$LIB_STDCPP_PATH'"
+    	if [ ! -f $LIB_STDCPP_PATH/$stdlibname ]; then
+    		echo "ERROR: Failed to locate '$stdlibname' in path '$LIB_STDCPP_PATH'"
     		exit 1
     	fi
     fi
-    export LLVM_EXTRA_CONFIG="$LLVM_EXTRA_CONFIG -DCMAKE_INSTALL_RPATH=\$ORIGIN/../lib:\$ORIGIN/"
+    cp $LIB_STDCPP_PATH/libstdc++* $linstallpath/lib/.
+    export LINUX_EXTRA_CONFIG="-DCMAKE_INSTALL_RPATH=\$ORIGIN/../lib:\$ORIGIN/"
 }
 
 common() {
@@ -670,7 +685,7 @@ common() {
 
 		export PATH=${PREINSTALL}/$arg/bin:$PATH
 		# Need libstdc++.so lib to build clang using clang
-		locate_stdcpp_library "$GCC" "$GCC_VERSION"
+		locate_stdcpp_library "$GCC" "$GCC_VERSION" "${INSTALL}/${WHICH_BINUTILS}binutils/$release/"
 		export_clang_compiler
 		#export CXXFLAGS="-stdlib=libc++"
 		#export LDFLAGS="-L${INSTALL}/${WHICH_BINUTILS}binutils/$release/lib -llibc++abi"
@@ -986,10 +1001,15 @@ else
 			export LDFLAGS="-L${INSTALL}/${WHICH_BINUTILS}binutils/release/$revision/lib"
 		fi
 		if [ $libname = "libcxx" ]; then
-			if [ ! -f "${INSTALL}/${WHICH_BINUTILS}binutils/release/$revision/lib/libc++abi.so" ]; then
+			so_path=${INSTALL}/${WHICH_BINUTILS}binutils/release/$revision/lib/libc++abi*.${SL_EXT}
+			if [ $(is_file_exist "$so_path") = "0" ]; then
 				echo "ERROR: Build library libcxxabi before libcxx"
 				exit 1
 			fi
+		fi
+		if [ "$PLATFORM" = "Linux" ]; then
+			export_gcc_compiler
+			locate_stdcpp_library "$GCC" "$GCC_VERSION" "${INSTALL}/${WHICH_BINUTILS}binutils/release/$revision/"
 		fi
 		build_library "${WHICH_BINUTILS}binutils/release/$revision" "$INSTALL" "$libname"
 	else
