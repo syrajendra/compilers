@@ -398,7 +398,7 @@ fire_build_cmd() {
 	echo ""
 	echo "--- Building $pre $reponame ---"
 	echo "PWD: $PWD"
-	debug_prints
+	#debug_prints
 	if [ $NINJA = 1 ]; then
 		execute "cmake $reposrc -G Ninja  $cmake_opts" "$LOG/ninja-configure-${pre}${reponame}.log"
 		execute "ninja" "$LOG/ninja-build-${pre}${reponame}.log"
@@ -408,6 +408,7 @@ fire_build_cmd() {
 		execute "gmake -j $CPUS" "$LOG/make-build-${pre}${reponame}.log"
 		execute "gmake install" "$LOG/make-install-${pre}${reponame}.log"
 	fi
+	echo "INFO: LLVM/Clang is built @ ${installpath}"
 }
 
 build_llvm() {
