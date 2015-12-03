@@ -634,13 +634,16 @@ locate_stdcpp_library() {
 common() {
 	compiler=$1
 	release=$2
+	dot_release=`basename $release`
 	arg="${WHICH_BINUTILS}binutils/$2"
 	mkdir -p ${INSTALL}/$arg ${PREINSTALL}/$arg
 
 	if [ "$PLATFORM" = "FreeBSD" ]; then
+		cur_release=`echo $dot_release | awk -F. '{print $1*100 + $2*10 + $3;}'`
+		min_release=`echo "3.7.0" | awk -F. '{print $1*100 + $2*10 + $3;}'`
 		CLANG=$(run "which clang")
 		clang_version=`$CLANG --version | grep version | sed s/.*version//g | sed s/\(.*//g | xargs`
-		if [ "$clang_version" = "3.4.1" ] ; then
+		if [ "$clang_version" = "3.4.1" ] && [ $cur_release -ge $min_release ]; then
 			export_clang_compiler
 			build_${WHICH_BINUTILS}binutils "$arg" "${PREINSTALL}"
 			# CC: error: unable to execute command: Segmentation fault (core dumped)
