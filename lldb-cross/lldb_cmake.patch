@@ -1,0 +1,62 @@
+Index: cmake/LLDBDependencies.cmake
+===================================================================
+--- cmake/LLDBDependencies.cmake	(revision 292393)
++++ cmake/LLDBDependencies.cmake	(working copy)
+@@ -148,7 +148,12 @@
+ 
+ set(LLDB_SYSTEM_LIBS)
+ if (NOT LLDB_DISABLE_LIBEDIT)
+-  list(APPEND LLDB_SYSTEM_LIBS edit)
++  if(NOT LLDB_CROSSCOMPILING)
++    list(APPEND LLDB_SYSTEM_LIBS edit)
++  else()
++    set(EDIT_LIBRARY "${LLDB_SYSROOT}/usr/lib/libedit.so")
++    list(APPEND LLDB_SYSTEM_LIBS ${EDIT_LIBRARY})
++  endif()
+ endif()
+ if (NOT LLDB_DISABLE_CURSES)
+   list(APPEND LLDB_SYSTEM_LIBS ${CURSES_LIBRARIES})
+Index: cmake/modules/LLDBConfig.cmake
+===================================================================
+--- cmake/modules/LLDBConfig.cmake	(revision 292393)
++++ cmake/modules/LLDBConfig.cmake	(working copy)
+@@ -367,13 +367,17 @@
+ endif()
+ 
+ if (NOT LLDB_DISABLE_CURSES)
+-    find_package(Curses REQUIRED)
++    if(NOT LLDB_CROSSCOMPILING)
++      find_package(Curses REQUIRED)
+ 
+-    find_library(CURSES_PANEL_LIBRARY NAMES panel DOC "The curses panel library")
+-    if (NOT CURSES_PANEL_LIBRARY)
++      find_library(CURSES_PANEL_LIBRARY NAMES panel DOC "The curses panel library")
++      if (NOT CURSES_PANEL_LIBRARY)
+         message(FATAL_ERROR "A required curses' panel library not found.")
+-    endif ()
+-
++      endif ()
++    else()
++      set(CURSES_LIBRARIES "${LLDB_SYSROOT}/usr/lib/libcurses.so;${LLDB_SYSROOT}/usr/lib/libform.so;${LLDB_SYSROOT}/usr/lib/libpanel.so")
++      set(CURSES_INCLUDE_DIR "${LLDB_SYSROOT}/usr/include")
++    endif()
+     # Add panels to the library path
+     set (CURSES_LIBRARIES ${CURSES_LIBRARIES} ${CURSES_PANEL_LIBRARY})
+ 
+Index: tools/lldb-server/CMakeLists.txt
+===================================================================
+--- tools/lldb-server/CMakeLists.txt	(revision 292393)
++++ tools/lldb-server/CMakeLists.txt	(working copy)
+@@ -124,7 +124,11 @@
+ 
+ # On FreeBSD/NetBSD backtrace() is provided by libexecinfo, not libc.
+ if (CMAKE_SYSTEM_NAME MATCHES "FreeBSD" OR CMAKE_SYSTEM_NAME MATCHES "NetBSD")
+-  list(APPEND LLDB_SYSTEM_LIBS execinfo)
++  if(LLDB_CROSSCOMPILING)
++    list(APPEND LLDB_SYSTEM_LIBS ${LLDB_SYSROOT}/usr/lib/libexecinfo.so)
++  else()
++    list(APPEND LLDB_SYSTEM_LIBS execinfo)
++  endif()
+ endif()
+ 
+ if (NOT LLDB_DISABLE_PYTHON AND NOT LLVM_BUILD_STATIC)

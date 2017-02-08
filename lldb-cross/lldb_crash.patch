@@ -1,0 +1,18 @@
+Index: source/Plugins/Process/FreeBSD/ProcessFreeBSD.cpp
+===================================================================
+--- source/Plugins/Process/FreeBSD/ProcessFreeBSD.cpp	(revision 292393)
++++ source/Plugins/Process/FreeBSD/ProcessFreeBSD.cpp	(working copy)
+@@ -466,12 +466,12 @@
+   Error error;
+ 
+   if (!HasExited()) {
+-    assert(m_monitor);
+     m_exit_now = true;
+     if (GetID() == LLDB_INVALID_PROCESS_ID) {
+       error.SetErrorString("invalid process id");
+       return error;
+     }
++    assert(m_monitor);
+     if (!m_monitor->Kill()) {
+       error.SetErrorToErrno();
+       return error;

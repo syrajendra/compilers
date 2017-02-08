@@ -1,0 +1,17 @@
+Index: CMakeLists.txt
+===================================================================
+--- CMakeLists.txt	(revision 292377)
++++ CMakeLists.txt	(working copy)
+@@ -777,8 +777,10 @@
+ if(${CMAKE_SYSTEM_NAME} MATCHES "(FreeBSD|DragonFly)")
+   # On FreeBSD, /usr/local/* is not used by default. In order to build LLVM
+   # with libxml2, iconv.h, etc., we must add /usr/local paths.
+-  include_directories("/usr/local/include")
+-  link_directories("/usr/local/lib")
++  if(NOT LLDB_CROSSCOMPILING)
++    include_directories("/usr/local/include")
++    link_directories("/usr/local/lib")
++  endif()
+ endif(${CMAKE_SYSTEM_NAME} MATCHES "(FreeBSD|DragonFly)")
+ 
+ if( ${CMAKE_SYSTEM_NAME} MATCHES SunOS )
