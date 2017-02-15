@@ -1,6 +1,6 @@
 #!/bin/sh -e
 
-#set -x
+set -x
 WHAT=$1
 
 if [ X$WHAT = X ]; then
@@ -26,6 +26,7 @@ if [ X$svn_exe = X ]; then
 	echo "svn not found"
 	exit 1
 fi
+
 # http://llvm.org/svn/llvm-project/llvm/tags/
 get_revision() {
 	repo=$1
@@ -125,7 +126,6 @@ if [ ! -d $SRC/lldb ]; then
 fi
 
 cd $SRC/llvm/tools/clang
-cd $SRC/llvm/tools/lldb
 cd $DISK
 install_dir=$PWD/install/${BUILD_TYPE}/${WHAT}
 build=$PWD/build/${BUILD_TYPE}/${WHAT}
