@@ -1,6 +1,6 @@
 #!/bin/sh -e
 
-#set -x
+set -x
 WHAT=$1
 
 if [ X$WHAT = X ]; then
@@ -58,6 +58,9 @@ elif [ -d "/n" ]; then
 	MOUNT="n"
 elif [ -d "/b" ]; then
 	MOUNT="b"
+else
+	echo "No mount point found"
+	exit 1
 fi
 
 DISK="/${MOUNT}/$USER/${RELEASE_TAG}"
