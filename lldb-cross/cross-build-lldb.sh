@@ -11,6 +11,9 @@ elif [ -d "/n" ]; then
 	MOUNT="n"
 elif [ -d "/b" ]; then
 	MOUNT="b"
+else
+	echo "No mount point found"
+	exit 1
 fi
 
 DISK="/${MOUNT}/$USER/${RELEASE_TAG}"
