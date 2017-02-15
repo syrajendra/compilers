@@ -1,6 +1,6 @@
 #!/bin/sh -e
 
-set -x
+#set -x
 WHAT=$1
 
 if [ X$WHAT = X ]; then
@@ -60,7 +60,7 @@ elif [ -d "/b" ]; then
 	MOUNT="b"
 fi
 
-DISK="/${MOUNT}/syrajendra/${RELEASE_TAG}"
+DISK="/${MOUNT}/$USER/${RELEASE_TAG}"
 
 mkdir -p $DISK
 if [ ! -d $DISK ]; then
@@ -95,7 +95,7 @@ mkdir -p $SRC
 cd $SRC
 echo "Checkout llvm"
 if [ ! -d $SRC/llvm ]; then
-	svn co -q -r $LLVM_REVISION http://llvm.org/svn/llvm-project/llvm/trunk llvm
+	$svn_exe co -q -r $LLVM_REVISION http://llvm.org/svn/llvm-project/llvm/trunk llvm
 fi
 
 if [ ! -d $SRC/llvm/tools ]; then
@@ -106,7 +106,7 @@ fi
 echo "Checkout clang"
 cd $SRC/llvm/tools/
 if [ ! -d clang ]; then
-	svn co -q -r $CLANG_REVISION http://llvm.org/svn/llvm-project/cfe/trunk clang
+	$svn_exe co -q -r $CLANG_REVISION http://llvm.org/svn/llvm-project/cfe/trunk clang
 fi
 cd -
 
@@ -117,7 +117,7 @@ fi
 
 echo "Checkout lldb"
 if [ ! -d $SRC/lldb ]; then
-	svn co -q -r $LLDB_REVISION http://llvm.org/svn/llvm-project/lldb/trunk lldb
+	$svn_exe co -q -r $LLDB_REVISION http://llvm.org/svn/llvm-project/lldb/trunk lldb
 fi
 
 if [ ! -d $SRC/lldb ]; then
@@ -133,19 +133,31 @@ mkdir -p $build $install_dir
 
 cd $build
 if [ $WHAT = "clang" ]; then
-	cmake -G "Unix Makefiles" $SRC/llvm -DCMAKE_INSTALL_PREFIX=$install_dir $LLVM_CONFIGURATION
-	$MAKE -j 16
-	$MAKE install
+	if [ ! -f $install_dir/bin/clang ]; then
+		cmake -G "Unix Makefiles" $SRC/llvm -DCMAKE_INSTALL_PREFIX=$install_dir $LLVM_CONFIGURATION
+		$MAKE -j 16
+		$MAKE install
+		echo "Clang built at : $install_dir/bin/clang"
+	else
+		echo "Clang already built at : $install_dir/bin/clang"
+		exit 0
+	fi
 else
-	new_src=bundle
-	mkdir -p $new_src
-	ln -sf $SRC/llvm     $new_src/.
-	ln -sf $SRC.lldb     $new_src/llvm/tools/.
-	ln -sf $SRC/llvm/tools/clang $SRC/lldb/../. # lldb hard coded relative path of clang include
-	SOURCE_NEW=$PWD/$new_src # overwrite this to pick dummy bundle
-	cmake -G Ninja $SOURCE_NEW/llvm -DCMAKE_INSTALL_PREFIX=$install_dir $LLVM_CONFIGURATION
-	ninja lldb
-	ninja install
+	if [ ! -f $install_dir/bin/lldb ]; then
+		new_src=bundle
+		mkdir -p $new_src
+		ln -sf $SRC/llvm     $new_src/.
+		ln -sf $SRC.lldb     $new_src/llvm/tools/.
+		ln -sf $SRC/llvm/tools/clang $SRC/lldb/../. # lldb hard coded relative path of clang include
+		SOURCE_NEW=$PWD/$new_src # overwrite this to pick dummy bundle
+		cmake -G Ninja $SOURCE_NEW/llvm -DCMAKE_INSTALL_PREFIX=$install_dir $LLVM_CONFIGURATION
+		ninja lldb
+		ninja install
+		echo "Lldb built at : $install_dir/bin/lldb"
+ 	else
+ 		echo "Lldb already built at : $install_dir/bin/lldb"
+		exit 0
+ 	fi
 fi
 
 
