@@ -1,5 +1,6 @@
-#!/bin/sh -xe
+#!/bin/sh -e
 
+#set -x
 WHAT=$1
 
 if [ X$WHAT = X ]; then
@@ -18,10 +19,30 @@ else
 	LLVM_VERSION=3.9
 fi
 
-RELEASE_TAG="release_400"
-LLVM_REVISION=292377
-CLANG_REVISION=292379
-LLDB_REVISION=292393
+RELEASE_TAG="RELEASE_400/rc2"
+
+svn_exe=`which svn`
+if [ X$svn_exe = X ]; then
+	echo "svn not found"
+	exit 1
+fi
+# http://llvm.org/svn/llvm-project/llvm/tags/
+get_revision() {
+	repo=$1
+	tag=$2
+	revision=`$svn_exe log http://llvm.org/svn/llvm-project/$repo/tags/$tag -v --stop-on-copy | head -2 | tail -1 | tr '|' '\n' | head -1 | sed s/r//g`
+	echo $revision
+}
+
+LLVM_REVISION=$(get_revision "llvm" "$RELEASE_TAG")
+CLANG_REVISION=$(get_revision "cfe" "$RELEASE_TAG")
+LLDB_REVISION=$(get_revision "lldb" "$RELEASE_TAG")
+
+echo "Release TAG: $RELEASE_TAG"
+echo "LLVM revision : $LLVM_REVISION"
+echo "CLANG revision: $CLANG_REVISION"
+echo "LLDB revision : $LLDB_REVISION"
+
 if [ $WHAT = "clang" ]; then
 	BUILD_TYPE="Release"
 	LLVM_CONFIGURATION="-DCMAKE_BUILD_TYPE=$BUILD_TYPE"
@@ -58,11 +79,6 @@ if [ X$cmake_exe = X ]; then
 	exit 1
 fi
 
-svn_exe=`which svn`
-if [ X$svn_exe = X ]; then
-	echo "svn not found"
-	exit 1
-fi
 
 echo "Disk space found : $DISK"
 
@@ -111,7 +127,7 @@ fi
 cd $SRC/llvm/tools/clang
 cd $SRC/llvm/tools/lldb
 cd $DISK
-install_dir=$PWD/install/${WHAT}
+install_dir=$PWD/install/${BUILD_TYPE}/${WHAT}
 build=$PWD/build/${BUILD_TYPE}/${WHAT}
 mkdir -p $build $install_dir
 
