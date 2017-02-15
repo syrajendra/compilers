@@ -1,29 +1,43 @@
 #!/bin/sh -e
 
-#set -x
+set -x
 
-if [ `uname` != FreeBSD ]; then
-  echo "Supported on FreeBSD only"
-  exit 1
+RELEASE_TAG="RELEASE_400/rc2"
+CLANGPATH="/volume/hab/FreeBSD/10/amd64/llvm/3.9/current"
+
+if [ -d "/c" ]; then
+	MOUNT="c"
+elif [ -d "/n" ]; then
+	MOUNT="n"
+elif [ -d "/b" ]; then
+	MOUNT="b"
 fi
 
-CLANGPATH="/volume/hab/FreeBSD/10/amd64/llvm/3.9/current"
-CLANG_TABLGEN_PATH="/c/syrajendra/release_400/build/Release/clang/bin"
-LLVM_TABLGEN_PATH="/c/syrajendra/release_400/install/clang/bin"
+DISK="/${MOUNT}/$USER/${RELEASE_TAG}"
+
+mkdir -p $DISK
+if [ ! -d $DISK ]; then
+	echo "No disk space found"
+	exit 1
+fi
+
+CLANG_TABLGEN_PATH="$DISK/build/Release/clang/bin"
+LLVM_TABLGEN_PATH="$DISK/install/clang/bin"
 
 CUR_DIR=$PWD
-LLVM_SRC="/c/syrajendra/release_400/src/llvm"
+LLVM_SRC="$DISK/src/llvm"
 CLANG_SRC="$LLVM_SRC/tools/clang"
-LLDB_SRC="/c/syrajendra/release_400/src/lldb"
+LLDB_SRC="$DISK/src/lldb"
 LLDB_INSTALL=$CUR_DIR/install
 LLDB_BUILD=$CUR_DIR/build
 SYSROOT_TOP=${CUR_DIR}/sysroot
 
-BUILD_TYPE=Debug # Release
+#BUILD_TYPE=Release # Debug
 DISABLE_PYTHON=False # True
+BUILD_TYPE=Debug
 EXPORT_SYMBOLS="-DLLDB_EXPORT_ALL_SYMBOLS=1"
 
-LLDB_TARGETS_11="armv6--freebsd11.0-gnueabihf i386-unknown-freebsd11.0 amd64-unknown-freebsd11.0"
+LLDB_TARGETS_11="amd64-unknown-freebsd11.0 armv6--freebsd11.0-gnueabihf i386-unknown-freebsd11.0"
 LLDB_TARGETS="$LLDB_TARGETS_11"
 
 contains() {
@@ -216,6 +230,5 @@ for TARGET_TRIPLE in $LLDB_TARGETS; do # loop for all supported boards
 		echo "llvm or lldb source missing while cross building for $TARGET_TRIPLE"
 		exit 1
 	fi
-	exit 1
 done
 
