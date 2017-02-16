@@ -1,10 +1,10 @@
 Index: cmake/LLDBDependencies.cmake
 ===================================================================
---- cmake/LLDBDependencies.cmake	(revision 292393)
+--- cmake/LLDBDependencies.cmake	(revision 294544)
 +++ cmake/LLDBDependencies.cmake	(working copy)
-@@ -148,7 +148,12 @@
+@@ -9,7 +9,12 @@
+ endif ()
  
- set(LLDB_SYSTEM_LIBS)
  if (NOT LLDB_DISABLE_LIBEDIT)
 -  list(APPEND LLDB_SYSTEM_LIBS edit)
 +  if(NOT LLDB_CROSSCOMPILING)
@@ -18,9 +18,9 @@ Index: cmake/LLDBDependencies.cmake
    list(APPEND LLDB_SYSTEM_LIBS ${CURSES_LIBRARIES})
 Index: cmake/modules/LLDBConfig.cmake
 ===================================================================
---- cmake/modules/LLDBConfig.cmake	(revision 292393)
+--- cmake/modules/LLDBConfig.cmake	(revision 294544)
 +++ cmake/modules/LLDBConfig.cmake	(working copy)
-@@ -367,13 +367,17 @@
+@@ -370,13 +370,17 @@
  endif()
  
  if (NOT LLDB_DISABLE_CURSES)
@@ -45,9 +45,9 @@ Index: cmake/modules/LLDBConfig.cmake
  
 Index: tools/lldb-server/CMakeLists.txt
 ===================================================================
---- tools/lldb-server/CMakeLists.txt	(revision 292393)
+--- tools/lldb-server/CMakeLists.txt	(revision 294544)
 +++ tools/lldb-server/CMakeLists.txt	(working copy)
-@@ -124,7 +124,11 @@
+@@ -40,7 +40,11 @@
  
  # On FreeBSD/NetBSD backtrace() is provided by libexecinfo, not libc.
  if (CMAKE_SYSTEM_NAME MATCHES "FreeBSD" OR CMAKE_SYSTEM_NAME MATCHES "NetBSD")

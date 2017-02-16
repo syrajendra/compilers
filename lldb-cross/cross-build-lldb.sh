@@ -2,6 +2,7 @@
 
 set -x
 
+SCRIPT_DIR=$(cd $(dirname $0) && pwd)
 RELEASE_TAG="RELEASE_400/rc2"
 CLANGPATH="/volume/hab/FreeBSD/10/amd64/llvm/3.9/current"
 
@@ -34,6 +35,41 @@ LLDB_SRC="$DISK/src/lldb"
 LLDB_INSTALL=$CUR_DIR/install
 LLDB_BUILD=$CUR_DIR/build
 SYSROOT_TOP=${CUR_DIR}/sysroot
+
+patch_exe=`which patch`
+if [ X$patch_exe = X ]; then
+	echo "patch command not found"
+	exit 1
+fi
+
+LLVM_PATCH="$SCRIPT_DIR/llvm_cmake.patch"
+if [ ! -f $LLVM_PATCH ]; then
+	echo "LLVM patch not found"
+	exit 1
+fi
+LLDB_PATCH="$SCRIPT_DIR/lldb_cmake.patch"
+if [ ! -f $LLDB_PATCH ]; then
+	echo "LLDB patch not found"
+	exit 1
+fi
+cd $LLVM_SRC
+$patch_exe --dry-run -f -p0 < $LLVM_PATCH
+if [ $? = 0 ]; then
+	$patch_exe -f -p0 < $LLVM_PATCH
+	echo "LLVM patch applied successfully"
+else
+	echo "LLVM patch failed"
+fi
+cd $LLDB_SRC
+$patch_exe --dry-run -f -p0 < $LLDB_PATCH
+if [ $? = 0 ]; then
+	$patch_exe -f -p0 < $LLDB_PATCH
+	echo "LLBD patch applied successfully"
+else
+	echo "LLDB patch failed"
+fi
+
+cd $CUR_DIR
 
 #BUILD_TYPE=Release # Debug
 DISABLE_PYTHON=False # True
