@@ -32,9 +32,9 @@ CUR_DIR=$PWD
 LLVM_SRC="$DISK/src/llvm"
 CLANG_SRC="$LLVM_SRC/tools/clang"
 LLDB_SRC="$DISK/src/lldb"
-LLDB_INSTALL=$CUR_DIR/install
-LLDB_BUILD=$CUR_DIR/build
-SYSROOT_TOP=${CUR_DIR}/sysroot
+LLDB_INSTALL=$DISK/install
+LLDB_BUILD=$DISK/build
+SYSROOT_TOP=$DISK/sysroot
 
 patch_exe=`which patch`
 if [ X$patch_exe = X ]; then
