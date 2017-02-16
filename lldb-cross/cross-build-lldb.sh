@@ -26,7 +26,7 @@ if [ ! -d $DISK ]; then
 fi
 
 CLANG_TABLGEN_PATH="$DISK/build/Release/clang/bin"
-LLVM_TABLGEN_PATH="$DISK/install/clang/bin"
+LLVM_TABLGEN_PATH="$DISK/install/Release/clang/bin"
 
 CUR_DIR=$PWD
 LLVM_SRC="$DISK/src/llvm"
