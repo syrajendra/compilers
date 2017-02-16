@@ -115,7 +115,7 @@ for TARGET_TRIPLE in $LLDB_TARGETS; do # loop for all supported boards
 		exit 1
 	fi
 
-	PREFIX="${LLDB_INSTALL}/${TARGET_TRIPLE}"
+	PREFIX="${LLDB_INSTALL}/${BUILD_TYPE}/${TARGET_TRIPLE}"
 	PYTHON_PKG=${SYSROOT}/usr/local
 
 	# Python requirement
