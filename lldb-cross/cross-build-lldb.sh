@@ -71,10 +71,17 @@ fi
 
 cd $CUR_DIR
 
-#BUILD_TYPE=Release # Debug
 DISABLE_PYTHON=False # True
-BUILD_TYPE=Debug
-EXPORT_SYMBOLS="-DLLDB_EXPORT_ALL_SYMBOLS=1"
+if [ $# = 0 ]; then
+	BUILD_TYPE=Debug
+	EXPORT_SYMBOLS="-DLLDB_EXPORT_ALL_SYMBOLS=1"
+elif [ $1 = "Release" ]; then
+	BUILD_TYPE=Release
+else
+	BUILD_TYPE=Debug
+	EXPORT_SYMBOLS="-DLLDB_EXPORT_ALL_SYMBOLS=1"
+fi
+
 
 LLDB_TARGETS_11="amd64-unknown-freebsd11.0 armv6--freebsd11.0-gnueabihf i386-unknown-freebsd11.0"
 LLDB_TARGETS="$LLDB_TARGETS_11"
