@@ -125,6 +125,20 @@ char *get_relocation_type_str(MAX_BYTES type)
 				default: return "DoNo type";
 			}
 		}
+		case EM_ARM:
+		{
+			switch(type) {
+				case R_ARM_JUMP_SLOT: return "R_ARM_JUMP_SLOT";
+				default: return "DoNo type";
+			}
+		}
+		case EM_386:
+		{
+			switch(type) {
+				case R_386_GLOB_DAT: return "R_386_GLOB_DAT";
+				default: return "DoNo type";
+			}
+		}
 		default: return "DoNo machine";
 	}
 }
@@ -146,12 +160,11 @@ void print_relocation_section()
 	for (i=0; i<fptr->num_rel; i++) {
 		MAX_BYTES r_offset 	= GET_BYTES(fptr->rel[i].r_offset);
 		MAX_BYTES r_info 	= GET_BYTES(fptr->rel[i].r_info);
-		MAX_BYTES r_addend	= GET_BYTES(fptr->rel[i].r_addend);
 		char *r_type 		= get_relocation_type_str(get_relocation_type(r_info));
 		MAX_BYTES sym_index = get_reloc_symindex(r_info);
 		MAX_BYTES sym_value = GET_BYTES(fptr->dsym[sym_index].st_value);
 		char *sym_name 		= &fptr->dsym_strtable[GET_BYTES(fptr->dsym[sym_index].st_name)];
-		fprintf(stdout, "%10llx | %10llx | %18s | %10llx | %s + %llu\n", r_offset, r_info, r_type, sym_value, sym_name, r_addend);
+		fprintf(stdout, "%10llx | %10llx | %18s | %10llx | %s \n", r_offset, r_info, r_type, sym_value, sym_name);
 	}
 }
 

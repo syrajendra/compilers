@@ -99,9 +99,14 @@ int main(int argc, char *argv[])
 	if (opt['h'] == 1)  print_elf_header();
 	if (opt['l'] == 1)  print_program_headers();
 	if (opt['S'] == 1)  print_section_headers();
-	if (opt['s'] == 1)  print_symbol_table();
+	if (opt['s'] == 1) {
+		if (opt['D'] == 1) {
+		 	print_dynamic_symbol_table();
+		} else {
+			print_symbol_table();
+		}
+	}
 	if (opt['d'] == 1)  print_dynamic_section();
-	if (opt['D'] == 1)  print_dynamic_symbol_table();
 	if (opt['r'] == 1)  print_relocation_section();
 	if (argc == 2) 		print_file_info();
 
