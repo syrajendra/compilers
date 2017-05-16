@@ -43,12 +43,21 @@ void read_symbol_table(char *s_name, MAX_BYTES s_offset, MAX_BYTES se_size, MAX_
 	}
 	for (i=0; i<fptr->num_sym; i++) {
 		offset =  s_offset + (i * se_size);
-		COPY_FIELD(fptr->sym[i].st_name);
-		COPY_FIELD(fptr->sym[i].st_value);
-		COPY_FIELD(fptr->sym[i].st_size);
-		COPY_FIELD(fptr->sym[i].st_info);
-		COPY_FIELD(fptr->sym[i].st_other);
-		COPY_FIELD(fptr->sym[i].st_shndx);
+		if (fptr->is32bit) {
+			COPY_FIELD(fptr->sym[i].st_name);
+			COPY_FIELD(fptr->sym[i].st_value);
+			COPY_FIELD(fptr->sym[i].st_size);
+			COPY_FIELD(fptr->sym[i].st_info);
+			COPY_FIELD(fptr->sym[i].st_other);
+			COPY_FIELD(fptr->sym[i].st_shndx);
+		} else {
+			COPY_FIELD(fptr->sym[i].st_name);
+			COPY_FIELD(fptr->sym[i].st_info);
+			COPY_FIELD(fptr->sym[i].st_other);
+			COPY_FIELD(fptr->sym[i].st_shndx);
+			COPY_FIELD(fptr->sym[i].st_value);
+			COPY_FIELD(fptr->sym[i].st_size);
+		}
 	}
 }
 

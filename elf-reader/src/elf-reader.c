@@ -32,6 +32,7 @@ void parse_arguments(int argc, char *argv[], unsigned int *opt)
 
 	while ((ch = getopt(argc, argv, "ahlSsenrudfDi")) != -1) {
 		switch (ch) {
+			case 'f' : opt['f'] = 1; break; // show file info
 			case 'a' : opt['a'] = 1; break; // show all headers
 			case 'h' : opt['h'] = 1; break; // show elf headers
 			case 'l' : opt['l'] = 1; break; // show program headers
@@ -41,7 +42,6 @@ void parse_arguments(int argc, char *argv[], unsigned int *opt)
 			case 'r' : opt['r'] = 1; break; // show relocation section
 			case 'u' : opt['u'] = 1; break; // show unwind section
 			case 'd' : opt['d'] = 1; break; // show dynamic section
-			case 'f' : opt['f'] = 1; break; // show file info
 			case 'D' : opt['D'] = 1; break; // show only dynamic symbols
 			default: printf("Unknown option %c\n", ch); exit(-1);
 		}

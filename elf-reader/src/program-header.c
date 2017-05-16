@@ -3,12 +3,12 @@
 #define PROGRAM_STRUCT_ALLOCATE(i) \
 		{ \
 			ALLOCATE(phdr[i].p_type); 		\
-			ALLOCATE(phdr[i].p_flags); 	\
 			ALLOCATE(phdr[i].p_offset); 	\
 			ALLOCATE(phdr[i].p_vaddr); 	\
 			ALLOCATE(phdr[i].p_paddr); 	\
 			ALLOCATE(phdr[i].p_filesz); 	\
 			ALLOCATE(phdr[i].p_memsz); 	\
+			ALLOCATE(phdr[i].p_flags); 	\
 			ALLOCATE(phdr[i].p_align); 	\
 		}
 
@@ -42,15 +42,25 @@ void process_program_headers()
 	fptr->num_phdr = GET_BYTES(fptr->ehdr.e_phnum);
 	for (i=0; i<fptr->num_phdr; i++) {
 		offset =  (GET_BYTES(fptr->ehdr.e_phoff)) + (i * (GET_BYTES(fptr->ehdr.e_phentsize)));
-		COPY_FIELD(fptr->phdr[i].p_type);
-		COPY_FIELD(fptr->phdr[i].p_flags);
-		COPY_FIELD(fptr->phdr[i].p_offset);
-		COPY_FIELD(fptr->phdr[i].p_vaddr);
-		COPY_FIELD(fptr->phdr[i].p_paddr);
-		COPY_FIELD(fptr->phdr[i].p_filesz);
-		COPY_FIELD(fptr->phdr[i].p_memsz);
-		COPY_FIELD(fptr->phdr[i].p_flags);
-		COPY_FIELD(fptr->phdr[i].p_align);
+		if (fptr->is32bit) {
+			COPY_FIELD(fptr->phdr[i].p_type);
+			COPY_FIELD(fptr->phdr[i].p_offset);
+			COPY_FIELD(fptr->phdr[i].p_vaddr);
+			COPY_FIELD(fptr->phdr[i].p_paddr);
+			COPY_FIELD(fptr->phdr[i].p_filesz);
+			COPY_FIELD(fptr->phdr[i].p_memsz);
+			COPY_FIELD(fptr->phdr[i].p_flags);
+			COPY_FIELD(fptr->phdr[i].p_align);
+		} else {
+			COPY_FIELD(fptr->phdr[i].p_type);
+			COPY_FIELD(fptr->phdr[i].p_flags);
+			COPY_FIELD(fptr->phdr[i].p_offset);
+			COPY_FIELD(fptr->phdr[i].p_vaddr);
+			COPY_FIELD(fptr->phdr[i].p_paddr);
+			COPY_FIELD(fptr->phdr[i].p_filesz);
+			COPY_FIELD(fptr->phdr[i].p_memsz);
+			COPY_FIELD(fptr->phdr[i].p_align);
+		}
 	}
 }
 
@@ -69,15 +79,13 @@ void print_segment_type(unsigned int i, MAX_BYTES seg_type,
 				}
 				break;
 		case PT_INTERP:
-				str = (char *)&fptr->mem[seg_file_offset];
+			{
+				str = (char *)fptr->mem + seg_file_offset;
 				fprintf(stdout, "\t[%d] Interpreter : %s\n", i, str);
 				break;
+			}
 		case PT_NOTE:
-				str = (char *)&fptr->mem[seg_file_offset];
 				fprintf(stdout, "\t[%d] Note segment : 0x%llx : 0x%llx\n", i, seg_virtual_addr, seg_physical_addr);
-				if(strlen(str)) {
-					fprintf(stdout, "%s", str); // ?? why not showing
-				}
 				break;
 		case PT_DYNAMIC:
 				fprintf(stdout, "\t[%d] Dynamic segment : 0x%llx : 0x%llx\n", i, seg_virtual_addr, seg_physical_addr);
@@ -118,6 +126,9 @@ void print_segment_type(unsigned int i, MAX_BYTES seg_type,
 		case PT_HIOS:
 				fprintf(stdout, "\t[%d] End of OS specific segment\n", i);
 				break;
+		case PT_ARM_EXIDX:
+				fprintf(stdout, "\t[%d] Exception unwind table segment\n", i);
+				break;
 		default:
 			fprintf(stdout, "Segment not handled %llx\n", seg_type);
 	}
@@ -128,7 +139,8 @@ void print_segments()
 	MAX_BYTES i;
 	fprintf(stdout, "\tSegment name : virtual addr : physical addr\n");
 	for (i=0; i<GET_BYTES(fptr->ehdr.e_phnum); i++) {
-		print_segment_type(i, GET_BYTES(fptr->phdr[i].p_type),
+		print_segment_type(i,
+							GET_BYTES(fptr->phdr[i].p_type),
 							GET_BYTES(fptr->phdr[i].p_offset),
 							GET_BYTES(fptr->phdr[i].p_vaddr),
 							GET_BYTES(fptr->phdr[i].p_paddr));
@@ -149,12 +161,12 @@ void cleanup_program_header()
 	unsigned int i;
 	for (i=0; i<fptr->num_phdr; i++) {
 		free(fptr->phdr[i].p_type);
-		free(fptr->phdr[i].p_flags);
 		free(fptr->phdr[i].p_offset);
 		free(fptr->phdr[i].p_vaddr);
 		free(fptr->phdr[i].p_paddr);
 		free(fptr->phdr[i].p_filesz);
 		free(fptr->phdr[i].p_memsz);
+		free(fptr->phdr[i].p_flags);
 		free(fptr->phdr[i].p_align);
 	}
 }

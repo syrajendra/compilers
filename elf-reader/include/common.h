@@ -36,8 +36,8 @@ typedef struct dict {
 } dict_t;
 
 #define MAX_DICT 			5000
-#define MAX_SECTION_HEADERS 128
-#define MAX_PROGRAM_HEADERS 128
+#define MAX_SECTION_HEADERS 512
+#define MAX_PROGRAM_HEADERS 512
 #define STT_RELC			8		/* Complex relocation expression */
 #define STT_SRELC			9		/* Signed Complex relocation expression */
 #define STT_REGISTER		13		/* global reg reserved to app. */
@@ -61,6 +61,7 @@ typedef struct dict {
 #define SHN_TIC6X_SCOMMON	SHN_LORESERVE
 #define EM_TI_C6000	140	/* Texas Instruments TMS320C6000 DSP family */
 
+
 /* ELF Header */
 typedef struct elf_ehdr {
 	unsigned char		*e_ident;   /* ELF "magic number" */
@@ -82,12 +83,12 @@ typedef struct elf_ehdr {
 /* Program header */
 typedef struct elf_phdr {
 	unsigned char	*p_type;		/* Identifies program segment type */
-	unsigned char	*p_flags;		/* Segment flags */
 	unsigned char	*p_offset;		/* Segment file offset */
 	unsigned char	*p_vaddr;		/* Segment virtual address */
 	unsigned char	*p_paddr;		/* Segment physical address */
 	unsigned char	*p_filesz;		/* Segment size in file */
 	unsigned char	*p_memsz;		/* Segment size in memory */
+	unsigned char	*p_flags;		/* Segment flags */
 	unsigned char	*p_align;		/* Segment alignment, file & memory */
 } RElf_Phdr;
 
@@ -107,11 +108,11 @@ typedef struct elf_shdr {
 
 typedef struct sym { // .symtab symbol table
 	unsigned char	*st_name;		/* Symbol name, index in string tbl */
+	unsigned char	*st_value;		/* Value of the symbol */
+	unsigned char	*st_size;		/* Associated symbol size */
 	unsigned char	*st_info;		/* Type and binding attributes */
 	unsigned char	*st_other;		/* No defined meaning, 0 */
 	unsigned char	*st_shndx;		/* Associated section index */
-	unsigned char	*st_value;		/* Value of the symbol */
-	unsigned char	*st_size;		/* Associated symbol size */
 } RElf_Sym;
 
 /* The syminfo section if available contains additional information about every dynamic symbol */

@@ -88,7 +88,11 @@ char *get_section_type(MAX_BYTES sec_type)
 		case SHT_DYNSYM: 	  	return "SHT_DYNSYM"; 	/* Dynamic linker symbol table */
 		case SHT_GNU_verneed: 	return "SHT_GNU_verneed";/* Version needs section.  */
 		case SHT_GNU_versym:  	return "SHT_GNU_versym";/* Version symbol table.  */
-
+		case SHT_ARM_EXIDX: 	return "SHT_ARM_EXID"; /* ARM unwind section.  */
+		case SHT_INIT_ARRAY: 	return "SHT_INIT_ARRAY"; /* Array of constructors */
+		case SHT_FINI_ARRAY: 	return "SHT_FINI_ARRAY"; /* Array of destructors */
+		case SHT_ARM_PREEMPTMAP: return "SHT_ARM_PREEMPTMAP"; /* Preemption details.  */
+		case SHT_ARM_ATTRIBUTES: return "SHT_ARM_ATTRIBUTES"; /* ARM attributes section.  */
 		default: printf("Error: Section type %llx not defined\n", sec_type); exit(-1);
 	}
 }
@@ -125,6 +129,11 @@ char *get_section_use(char *name)
 	if (!strcmp(name, ".note.gnu.build-id")) return "A unique build ID";
 	if (!strncmp(name, ".eh_frame",8)) return "Frame unwind information (EH = Exception Handling)";
 	if (!strncmp(name, ".debug_", 6))	return "Debug info";
+	if (!strcmp(name, ".ARM.exidx")) return "ARM unwind section";
+	if (!strcmp(name, ".ARM.attributes")) return "ARM object attributes";
+	if (!strcmp(name, ".init_array")) return "Pointers to functions which will be executed when program starts";
+	if (!strcmp(name, ".fini_array")) return "Pointers to functions which will be executed when program exits normally";
+	if (!strcmp(name, ".note.tag")) return "Note tag section";
 	return "";
 }
 
@@ -145,11 +154,11 @@ char *get_section_flags(MAX_BYTES sec_flags)
 void print_sections()
 {
 	unsigned int i;
-	fprintf(stdout, "\t%2s | %18s | %15s | %15s | %s\n", "No","Section name", "Section type", "Flags", "Use");
+	fprintf(stdout, "\t%2s | %18s | %18s | %18s | %s\n", "No","Section name", "Section type", "Flags", "Use");
 	for (i=0; i<GET_BYTES(fptr->ehdr.e_shnum); i++) {
 		unsigned int index 		= GET_BYTES(fptr->shdr[i].sh_name); // index in to section string table
 		char *sec_type 			= get_section_type(GET_BYTES(fptr->shdr[i].sh_type));
-		fprintf(stdout, "\t%2d | %18s | %15s | %15s | %s \n", i,
+		fprintf(stdout, "\t%2d | %18s | %18s | %18s | %s \n", i,
 							&fptr->section_strtable[index],
 							sec_type,
 							get_section_flags(GET_BYTES(fptr->shdr[i].sh_flags)),

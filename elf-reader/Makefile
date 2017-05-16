@@ -97,4 +97,4 @@ print-%: ; @echo $*=$($*)
 
 
 # make --warn-undefined-variables
-
+# valgrind --leak-check=full --log-file=val.log --show-reachable=yes --tool=memcheck ./bin/native/Linux/x86_64/elf-reader ./bin/native/Linux/x86_64/elf-reader -r
