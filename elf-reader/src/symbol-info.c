@@ -28,14 +28,14 @@ void init_64_bit_dynamic_symbolinfo_section_struct(MAX_BYTES num_dsyminfo)
 	free(dsyminfo);
 }
 
-void read_dynamic_symbolinfo_sections()
+void process_dynamic_symbolinfo_section()
 {
 	MAX_BYTES i, offset = 0, size = 0, found = 0, s_size;
 
 	for (i=0; i<fptr->num_dsec; i++) {
-		if (GET_BYTES(fptr->dsec[i].d_tag) == DT_SYMINENT) {
+		if (GET_BYTES(fptr->dsec[i].d_tag) == DT_SYMINENT) { /* Entry size of syminfo */
 			found = 1;
-		} else if (GET_BYTES(fptr->dsec[i].d_tag) == DT_SYMINSZ) {
+		} else if (GET_BYTES(fptr->dsec[i].d_tag) == DT_SYMINSZ) { /* Size of syminfo table (in bytes) */
 			size 	= GET_BYTES(fptr->dsec[i].d_un.d_val);
 		} else if (GET_BYTES(fptr->dsec[i].d_tag) == DT_SYMINFO) {
 			copy_data((unsigned char *)&offset, fptr->mem + GET_BYTES(fptr->dsec[i].d_un.d_val), size);
@@ -58,4 +58,9 @@ void read_dynamic_symbolinfo_sections()
 			COPY_FIELD(fptr->dsyminfo[i].si_flags);
 		}
 	}
+}
+
+void print_dynamic_symbol_info()
+{
+
 }

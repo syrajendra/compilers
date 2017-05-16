@@ -10,7 +10,7 @@
 			ALLOCATE(sym[i].st_shndx); \
 		}
 
-void init_32_bit_dynamic_symbol_struct(MAX_BYTES num_symbols)
+static void init_32_bit_symbol_struct(MAX_BYTES num_symbols)
 {
 	MAX_BYTES i;
 	Elf32_Sym *sym  = (Elf32_Sym *) calloc(num_symbols, sizeof(Elf32_Sym));
@@ -21,7 +21,7 @@ void init_32_bit_dynamic_symbol_struct(MAX_BYTES num_symbols)
 	free(sym);
 }
 
-void init_64_bit_dynamic_symbol_struct(MAX_BYTES num_symbols)
+static void init_64_bit_symbol_struct(MAX_BYTES num_symbols)
 {
 	MAX_BYTES i;
 	Elf64_Sym *sym  = (Elf64_Sym *) calloc(num_symbols, sizeof(Elf64_Sym));
@@ -37,9 +37,9 @@ void read_symbol_table(char *s_name, MAX_BYTES s_offset, MAX_BYTES se_size, MAX_
 	MAX_BYTES i, offset, size;
 	fptr->num_sym = s_size / se_size;
 	if (fptr->is32bit) {
-		init_32_bit_dynamic_symbol_struct(fptr->num_sym);
+		init_32_bit_symbol_struct(fptr->num_sym);
 	} else {
-		init_64_bit_dynamic_symbol_struct(fptr->num_sym);
+		init_64_bit_symbol_struct(fptr->num_sym);
 	}
 	for (i=0; i<fptr->num_sym; i++) {
 		offset =  s_offset + (i * se_size);
@@ -158,18 +158,64 @@ char *get_symbol_visibility (unsigned int visibility)
 			return "<unknown>";
 	}
 }
+
+char *get_symbol_index_type (unsigned int type)
+{
+  	static char buff[32];
+
+  	switch (type) {
+    	case SHN_UNDEF:		return "UND";
+    	case SHN_ABS:		return "ABS";
+    	case SHN_COMMON:	return "COM";
+    	default:
+    	{
+    		MAX_BYTES machine = GET_BYTES(fptr->ehdr.e_machine);
+      		if (type == SHN_IA_64_ANSI_COMMON
+	  			&& machine == EM_IA_64
+	  			&& fptr->ehdr.e_ident[EI_OSABI] == ELFOSABI_HPUX)
+					return "ANSI_COM";
+      		else if ((machine == EM_X86_64
+					|| machine == EM_L1OM
+					|| machine == EM_K1OM)
+	       			&& type == SHN_X86_64_LCOMMON)
+						return "LARGE_COM";
+      		else if ((type == SHN_MIPS_SCOMMON
+					&& machine == EM_MIPS)
+	       			|| (type == SHN_TIC6X_SCOMMON
+		   			&& machine == EM_TI_C6000))
+					return "SCOM";
+      		else if (type == SHN_MIPS_SUNDEFINED
+	       			&& machine == EM_MIPS)
+					return "SUND";
+      		else if (type >= SHN_LOPROC && type <= SHN_HIPROC)
+				sprintf (buff, "PRC[0x%04x]", type & 0xffff);
+      		else if (type >= SHN_LOOS && type <= SHN_HIOS)
+				sprintf (buff, "OS [0x%04x]", type & 0xffff);
+      		else if (type >= SHN_LORESERVE)
+				sprintf (buff, "RSV[0x%04x]", type & 0xffff);
+      		else if (type >= GET_BYTES(fptr->ehdr.e_shnum))
+				sprintf (buff, "bad section index[%3d]", type);
+      		else
+				sprintf (buff, "%3d", type);
+      	}
+    }
+  return buff;
+}
+
+
 void print_symbol_table()
 {
 	MAX_BYTES i;
 	fprintf(stdout, "Number of symbols in symbol table: %lld\n", fptr->num_sym);
 	if (fptr->num_sym) {
-		fprintf(stdout, "Num : Value : Type : Bind : Visibility: Name\n");
+		fprintf(stdout, "%5s | %18s | %8s | %8s | %10s | %4s | Name\n", "Num", "Value" ,"Type", "Bind","Visibility", "Ndx");
 		for (i=0; i<fptr->num_sym; i++) {
 			MAX_BYTES val = GET_BYTES(fptr->sym[i].st_value);
 			char *type = get_symbol_type(ELF_ST_TYPE (GET_BYTES(fptr->sym[i].st_info)));
 			char *bind = get_symbol_binding(ELF_ST_BIND (GET_BYTES(fptr->sym[i].st_info)));
 			char *visb = get_symbol_visibility(ELF_ST_VISIBILITY (GET_BYTES(fptr->sym[i].st_info)));
-			fprintf(stderr, "%llx: 0x%llx %s %s %s %s\n", i, val, type, bind, visb,
+			char *sndx = get_symbol_index_type(GET_BYTES(fptr->sym[i].st_shndx));
+			fprintf(stderr, "%5lld | %#18llx | %8s | %8s | %10s | %s | %s\n", i, val, type, bind, visb, sndx,
 								&fptr->sym_strtable[GET_BYTES(fptr->sym[i].st_name)]);
 		}
 	}

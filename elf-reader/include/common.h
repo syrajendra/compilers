@@ -16,6 +16,7 @@
 
 #ifdef __linux__
 	#include "linux.h"
+	#include <ctype.h>
 #elif __FreeBSD__
 	#include "freebsd.h"
 #else
@@ -49,12 +50,23 @@ typedef struct dict {
 #define DT_FEATURE	0x6ffffdfc
 #define DT_USED		0x7ffffffe
 
+#define SHN_IA_64_ANSI_COMMON SHN_LORESERVE
+#define EM_L1OM		180	/* Intel L1OM */
+#define EM_K1OM		181	/* Intel K1OM */
+/* Like SHN_COMMON but the symbol will be allocated in the .lbss
+   section.  */
+#define SHN_X86_64_LCOMMON 	(SHN_LORESERVE + 2)
+
+/* Small data area common symbol.  */
+#define SHN_TIC6X_SCOMMON	SHN_LORESERVE
+#define EM_TI_C6000	140	/* Texas Instruments TMS320C6000 DSP family */
+
 /* ELF Header */
 typedef struct elf_ehdr {
 	unsigned char		*e_ident;   /* ELF "magic number" */
 	unsigned char		*e_type;    /* Identifies object file type */
 	unsigned char		*e_machine;	/* Specifies required architecture */
-  	unsigned char		*e_version;	/* Identifies object file version */
+	unsigned char		*e_version;	/* Identifies object file version */
 	unsigned char		*e_entry;	/* Entry point virtual address */
 	unsigned char		*e_phoff;	/* Program header table file offset */
 	unsigned char		*e_shoff;	/* Section header table file offset */
@@ -93,16 +105,17 @@ typedef struct elf_shdr {
 	unsigned char	*sh_entsize;	/* Entry size if section holds table */
 } RElf_Shdr;
 
-typedef struct sym { // symbol table
-  	unsigned char	*st_name;		/* Symbol name, index in string tbl */
+typedef struct sym { // .symtab symbol table
+	unsigned char	*st_name;		/* Symbol name, index in string tbl */
 	unsigned char	*st_info;		/* Type and binding attributes */
-  	unsigned char	*st_other;		/* No defined meaning, 0 */
+	unsigned char	*st_other;		/* No defined meaning, 0 */
 	unsigned char	*st_shndx;		/* Associated section index */
-  	unsigned char	*st_value;		/* Value of the symbol */
-  	unsigned char	*st_size;		/* Associated symbol size */
+	unsigned char	*st_value;		/* Value of the symbol */
+	unsigned char	*st_size;		/* Associated symbol size */
 } RElf_Sym;
 
-typedef struct d_syminfo { // dynamic symbol info
+/* The syminfo section if available contains additional information about every dynamic symbol */
+typedef struct d_syminfo {
 	unsigned char *si_boundto;
 	unsigned char *si_flags;
 } RElf_Syminfo;
@@ -115,8 +128,77 @@ typedef struct d_sec { // .dynamic section
 	} d_un;
 } RElf_Dyn;
 
+/* Relocation Entries */
+
+typedef struct rela {
+	unsigned char *r_offset;	/* Location at which to apply the action */
+	unsigned char *r_info;		/* Index and Type of relocation */
+	unsigned char *r_addend;	/* Constant addend used to compute value */
+} RElf_Rela;
+
+/* Version definition sections.  */
+typedef struct verdef {
+	unsigned char *vd_version;     /* Version revision */
+	unsigned char *vd_flags;       /* Version information */
+	unsigned char *vd_ndx;         /* Version Index */
+	unsigned char *vd_cnt;         /* Number of associated aux entries */
+	unsigned char *vd_hash;        /* Version name hash value */
+	unsigned char *vd_aux;         /* Offset in bytes to verdaux array */
+	unsigned char *vd_next;        /* Offset in bytes to next verdef entry */
+} RElf_Verdef;
+
+/* Auxialiary version information.  */
+typedef struct verdaux {
+	unsigned char *vda_name;       /* Version or dependency names */
+	unsigned char *vda_next;       /* Offset in bytes to next verdaux entry */
+} RElf_Verdaux;
+
+
+/* Version dependency section.  */
+typedef struct verneed {
+	unsigned char *vn_version;     /* Version of structure */
+	unsigned char *vn_cnt;         /* Number of associated aux entries */
+	unsigned char *vn_file;        /* Offset of filename for this dependency */
+	unsigned char *vn_aux;         /* Offset in bytes to vernaux array */
+	unsigned char *vn_next;        /* Offset in bytes to next verneed entry */
+} RElf_Verneed;
+
+/* Auxiliary needed version information.  */
+typedef struct vernaux {
+	unsigned char *vna_hash;       /* Hash value of dependency name */
+	unsigned char *vna_flags;      /* Dependency specific information */
+	unsigned char *vna_other;      /* Unused */
+	unsigned char *vna_name;       /* Dependency name string offset */
+	unsigned char *vna_next;       /* Offset in bytes to next vernaux entry */
+} RElf_Vernaux;
+
+/* Auxiliary vector.  */
+typedef struct auxv {
+	unsigned char *a_type;      /* Entry type */
+	union {
+		unsigned char *a_val;   /* Integer value */
+	} a_un;
+} RElf_auxv_t;
+
+/* Note section */
+typedef struct nhdr {
+	unsigned char *n_namesz;    /* Length of the note's name.  */
+	unsigned char *n_descsz;    /* Length of the note's descriptor.  */
+	unsigned char *n_type;      /* Type of the note.  */
+} RElf_Nhdr;
+
+/* Move records.  */
+typedef struct move {
+	unsigned char *m_value;       /* Symbol value.  */
+	unsigned char *m_info;        /* Size and index.  */
+	unsigned char *m_poffset;     /* Symbol offset.  */
+	unsigned char *m_repeat;      /* Repeat count.  */
+	unsigned char *m_stride;      /* Stride info.  */
+} RElf_Move;
+
 typedef struct file_info {
 	char 			path[PATH_MAX];
+	pid_t 			pid;
 	int 		 	fd;
 	struct stat 	st;
 	unsigned char 	*mem;
@@ -136,23 +218,27 @@ typedef struct file_info {
 	dict_t 			dict[MAX_DICT];
 	unsigned int    dict_size;
 
-	RElf_Sym 		*sym; 			// Symbol table
-	MAX_BYTES 		num_sym; 		// number of symbols
+	RElf_Sym 		*sym; 				// Symbol table
+	MAX_BYTES 		num_sym; 			// number of symbols
 
 	char 			*sym_strtable;		// all symbol - string table
 	MAX_BYTES 		sym_strtable_len; 	//
 
-	RElf_Dyn 		*dsec; 			// .dynamic section
+	RElf_Sym 		*dsym; 				// Dynamic symbol table
+	MAX_BYTES 		num_dsym; 			// number of dynamic symbols
+
+	char 			*dsym_strtable; 	// only dynamic - string table
+	MAX_BYTES 		dsym_strtable_len; 	// length of dynamic string table
+
+	RElf_Dyn 		*dsec; 				// .dynamic section
 	MAX_BYTES 		num_dsec;
 
 	char 			*dsec_strtable; 	// .dynamic - string table
 	MAX_BYTES 		dsec_strtable_len; 	// length of .dynamic string table
 
-	RElf_Syminfo 	*dsyminfo; 		// dynamic symbol info sections
-	MAX_BYTES 		num_dsyminfo; 	// number of dynamic symbol info
+	RElf_Syminfo 	*dsyminfo; 			// dynamic symbol info sections
+	MAX_BYTES 		num_dsyminfo; 		// number of dynamic symbol info
 
-	char 			*dsym_strtable; 	// only dynamic - string table
-	MAX_BYTES 		dsym_strtable_len; 	// length of dynamic string table
 } file_info_t;
 
 extern file_info_t *fptr;
@@ -183,6 +269,8 @@ void open_map_file();
 void copy_data(unsigned char *dest, unsigned char *src, size_t size);
 void print_bytes(unsigned char *data, unsigned int num_bytes);
 
+void print_file_info();
+
 // ELF header functions
 void process_elf_header();
 void print_elf_header();
@@ -202,6 +290,15 @@ void print_symbol_table();
 // Dynamic section functions
 void process_dynamic_section();
 void print_dynamic_section();
+
+char *get_section_type(MAX_BYTES sec_type);
+char *get_symbol_index_type (unsigned int type);
+char *get_symbol_visibility (unsigned int visibility);
+char *get_symbol_binding (unsigned int binding);
+char *get_symbol_type (unsigned int type);
+void print_dynamic_symbol_table();
+void process_dynamic_symbolinfo_section();
+void process_dynamic_symbol_table();
 
 #define GET_BYTES(field) get_bytes(field)
 

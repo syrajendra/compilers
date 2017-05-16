@@ -40,8 +40,6 @@ void find_endianess()
 		fprintf(stderr, "Error: Endianness unknown %d\n", (int)fptr->mem[EI_CLASS]);
 		exit(-1);
 	}
-	fprintf(stdout, "\tByte order : %s  { 1 byte }\n", (fptr->islittleendian) ?  "little endian": "big endian");
-	fprintf(stdout, "\t\t[%d] = 0x%d\n", EI_DATA, (int)fptr->mem[EI_DATA]);
 }
 
 void find_byte_order()
@@ -54,17 +52,9 @@ void find_byte_order()
 		fprintf(stderr, "Error: Neither 32 nor 64 bit architecture %d\n", (int)fptr->mem[EI_CLASS]);
 		exit(-1);
 	}
-	fprintf(stdout, "\tArchitecture : %d bit { 1 byte }\n", (fptr->is32bit) ? 32 : 64);
-	fprintf(stdout, "\t\t[%d] = 0x%d\n", EI_CLASS, (int)fptr->mem[EI_CLASS]);
 }
 
-void find_file_version()
-{
-	fprintf(stdout, "\tFile version : { 1 byte }\n");
-	fprintf(stdout, "\t\t[%d] = 0x%x\n", EI_VERSION, fptr->mem[EI_VERSION]);
-}
-
-void find_abi()
+void print_abi()
 {
 	char *str;
 	switch(fptr->mem[EI_OSABI]) {
@@ -79,6 +69,24 @@ void find_abi()
 	fprintf(stdout, "\t\t[%d] = 0x%x\n", EI_ABIVERSION, fptr->mem[EI_ABIVERSION]);
 }
 
+void print_file_info()
+{
+	fprintf(stdout, ":: Start of File Info :: %s\n", fptr->path);
+	fprintf(stdout, "\tFormat : ELF : { 4 bytes }\n");
+	fprintf(stdout, "\t\t[%d] = 0x%x\n", EI_MAG0, ELFMAG0);
+	fprintf(stdout, "\t\t[%d] = 0x%x = %c\n", EI_MAG1, fptr->mem[EI_MAG1], ELFMAG1);
+	fprintf(stdout, "\t\t[%d] = 0x%x = %c\n", EI_MAG2, fptr->mem[EI_MAG2], ELFMAG2);
+	fprintf(stdout, "\t\t[%d] = 0x%x = %c\n", EI_MAG3, fptr->mem[EI_MAG3] ,ELFMAG3);
+	fprintf(stdout, "\tArchitecture : %d bit { 1 byte }\n",(fptr->is32bit) ? 32 : 64);
+	fprintf(stdout, "\t\t[%d] = 0x%d\n", EI_CLASS, (int)fptr->mem[EI_CLASS]);
+	fprintf(stdout, "\tByte order : %s  { 1 byte }\n", (fptr->islittleendian) ?  "little endian": "big endian");
+	fprintf(stdout, "\t\t[%d] = 0x%d\n", EI_DATA, (int)fptr->mem[EI_DATA]);
+	fprintf(stdout, "\tFile version : { 1 byte }\n");
+	fprintf(stdout, "\t\t[%d] = 0x%x\n", EI_VERSION, fptr->mem[EI_VERSION]);
+	print_abi();
+	fprintf(stdout, ":: End of File Info (size: 2 bytes) ::\n");
+}
+
 void is_elf_file()
 {
 	if (fptr->mem[EI_MAG0] != ELFMAG0 &&
@@ -88,18 +96,9 @@ void is_elf_file()
 		fprintf(stderr, "Error: File %s is not in ELF format\n", fptr->path);
 		fprintf(stderr, "Magic byte : %x\n", fptr->mem[0]);
 		exit(-1);
-	} else {
-		fprintf(stdout, ":: File Info :: %s\n", fptr->path);
-		fprintf(stdout, "\tFormat : ELF { 4 bytes }\n");
-		fprintf(stdout, "\t\t[%d] = 0x%x\n", EI_MAG0, ELFMAG0);
-		fprintf(stdout, "\t\t[%d] = 0x%x = %c\n", EI_MAG1, fptr->mem[EI_MAG1], ELFMAG1);
-		fprintf(stdout, "\t\t[%d] = 0x%x = %c\n", EI_MAG2, fptr->mem[EI_MAG2], ELFMAG2);
-		fprintf(stdout, "\t\t[%d] = 0x%x = %c\n", EI_MAG3, fptr->mem[EI_MAG3] ,ELFMAG3);
-		find_byte_order();
-		find_endianess();
-		find_file_version();
-		find_abi();
 	}
+	find_byte_order();
+	find_endianess();
 }
 
 void process_elf_header()

@@ -9,13 +9,15 @@ SYSROOT_PATH 	= /volume/compiler-images/sysroot
 EXE_NAME 		= elf-reader
 MKDIR 			= mkdir
 CC 				= $(HAB)/$(OS)/$(OS_ID)/$(ARCH)/$(COMPILER)
+GCC 			= $(CC)
+#GCC 			= /usr/bin/gcc
 
 BIN 			= bin
 INCLUDES 		= -Iinclude
 
-DEBUG 			= -g
+DEBUG 			= -g2
 CFLAGS 			= -c $(DEBUG) $(INCLUDES)
-LDFLAGS 		=
+LDFLAGS 		= -DDEBUG -g2
 VPATH           = src
 SOURCE_PATH     = src
 SOURCES 		= $(SOURCE_PATH)/common.c \
@@ -26,6 +28,7 @@ SOURCES 		= $(SOURCE_PATH)/common.c \
 					$(SOURCE_PATH)/symbol-table.c \
 					$(SOURCE_PATH)/dynamic-linking.c \
 					$(SOURCE_PATH)/symbol-info.c \
+					$(SOURCE_PATH)/dynamic-symbol-table.c \
 					$(SOURCE_PATH)/elf-reader.c
 OBJ_SUFFIX 		= o
 SOURCES_BARE    = $(notdir $(SOURCES))
@@ -45,14 +48,14 @@ all: native
 .objects_native/%.$(OBJ_SUFFIX): %.c
 	@mkdir -p $(dir $@)
 	@echo Compiling: $<
-	$(CC) $(CFLAGS) $(CROSS_FLAGS) -o $@ $<
+	$(GCC) $(CFLAGS) $(CROSS_FLAGS) -o $@ $<
 
 native: clean-objs ${OBJECTS}
 	$(eval EXE_PATH := $(BIN)/native/$(OS)/$(ARCH))
 	@$(MKDIR) -p $(EXE_PATH)
 	$(eval EXE := $(EXE_PATH)/$(EXE_NAME))
 	@echo Linking: $(EXE)
-	$(CC) -o $(EXE) $(OBJECTS) $(LDFLAGS)
+	$(GCC) -o $(EXE) $(OBJECTS) $(LDFLAGS)
 
 cross-setup:
 	$(eval TARGET   := --target=$(TRIPLE))

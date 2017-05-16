@@ -151,14 +151,39 @@ char *get_dynamic_type (unsigned long type)
 	return "<unknown>";
 }
 
+char *get_lib_name(MAX_BYTES d_tag, MAX_BYTES d_val, char *d_type)
+{
+	static char buff[PATH_MAX];
+	char *name = &fptr->dsec_strtable[d_val];
+	switch(d_tag) {
+		case DT_NEEDED:  sprintf(buff, "Shared library [%s]", name); break;
+		case DT_SONAME:  sprintf(buff, "Library soname [%s]", name); break;
+		case DT_RPATH: 	 sprintf(buff, "Library rpath  [%s]", name); break;
+		case DT_RUNPATH: sprintf(buff, "Library runpath[%s]", name); break;
+		default:
+		{
+			unsigned int size = strlen(d_type);
+			if ((d_type[size-2] == 'S' && d_type[size-1] == 'Z') ||
+				(d_type[size-3] == 'E' && d_type[size-2] == 'N' && d_type[size-1] == 'T'))
+				sprintf(buff, "%llu bytes", d_val);
+			else if (d_type[size-3] == 'N' && d_type[size-2] == 'U' && d_type[size-1] == 'M')
+				sprintf(buff, "%llu", d_val);
+			else
+				sprintf(buff, "0x%llx", d_val);
+		}
+	}
+	return buff;
+}
+
 void print_dynamic_section()
 {
 	MAX_BYTES i;
 	fprintf(stdout, "Number of dynamic sections : %llu \n", fptr->num_dsec);
-	fprintf(stdout, "Tag : Type : Name/Value\n");
+	fprintf(stdout, "%10s | %10s | %s\n", "Tag", "Type", "Name/Value");
 	for (i=0; i<fptr->num_dsec; i++) {
 		MAX_BYTES d_tag = GET_BYTES(fptr->dsec[i].d_tag);
 		MAX_BYTES d_val = GET_BYTES(fptr->dsec[i].d_un.d_val);
-		fprintf(stdout, "0x%llx : %s \n", d_tag, get_dynamic_type(d_tag));
+		char *d_type 	= get_dynamic_type(d_tag);
+		fprintf(stdout, "%#10llx | %10s | %s\n", d_tag, d_type, get_lib_name(d_tag, d_val, d_type));
 	}
 }
