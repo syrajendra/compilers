@@ -19,4 +19,6 @@
 #define DT_GNU_LIBLIST  		0x6ffffef9  /* Library list */
 #define DT_GNU_LIBLISTSZ 		0x6ffffdf7 /* Size of library list */
 
+/* Processor specific values for the Phdr p_type field.  */
+#define PT_ARM_EXIDX        (PT_LOPROC + 1) /* ARM unwind segment.  */
 #endif

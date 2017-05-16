@@ -188,14 +188,6 @@ char *get_symbol_index_type (unsigned int type)
 					|| machine == EM_K1OM)
 	       			&& type == SHN_X86_64_LCOMMON)
 						return "LARGE_COM";
-      		else if ((type == SHN_MIPS_SCOMMON
-					&& machine == EM_MIPS)
-	       			|| (type == SHN_TIC6X_SCOMMON
-		   			&& machine == EM_TI_C6000))
-					return "SCOM";
-      		else if (type == SHN_MIPS_SUNDEFINED
-	       			&& machine == EM_MIPS)
-					return "SUND";
       		else if (type >= SHN_LOPROC && type <= SHN_HIPROC)
 				sprintf (buff, "PRC[0x%04x]", type & 0xffff);
       		else if (type >= SHN_LOOS && type <= SHN_HIOS)

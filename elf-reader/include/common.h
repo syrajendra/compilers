@@ -13,10 +13,10 @@
 #include <fcntl.h>
 #include <getopt.h>
 #include <inttypes.h>
+#include <ctype.h>
 
 #ifdef __linux__
 	#include "linux.h"
-	#include <ctype.h>
 #elif __FreeBSD__
 	#include "freebsd.h"
 #else
