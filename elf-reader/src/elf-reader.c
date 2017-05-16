@@ -148,6 +148,8 @@ int main(int argc, char *argv[])
 	process_dynamic_symbol_table();
 	// extra symbol info
 	process_dynamic_symbolinfo_section();
+	// .rel & .rela section processing
+	process_relocations();
 
 	if (opt['f'] == 1)  print_file_info();
 	if (opt['a'] == 1)  print_all_headers();
@@ -157,6 +159,7 @@ int main(int argc, char *argv[])
 	if (opt['s'] == 1)  print_symbol_table();
 	if (opt['d'] == 1)  print_dynamic_section();
 	if (opt['D'] == 1)  print_dynamic_symbol_table();
+	if (opt['r'] == 1)  print_relocation_section();
 	if (argc == 2) 		print_file_info();
 
 	//verify_fields();

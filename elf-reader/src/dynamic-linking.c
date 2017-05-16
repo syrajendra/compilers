@@ -28,7 +28,7 @@ void init_64_bit_dynamic_section_struct(MAX_BYTES num_dsection)
 	free(dsec);
 }
 
-void read_dynamic_sections(MAX_BYTES s_offset, MAX_BYTES se_size)
+void read_dynamic_section(MAX_BYTES s_offset, MAX_BYTES se_size)
 {
 	MAX_BYTES i, offset, size;
 	if (fptr->is32bit) {
@@ -55,7 +55,7 @@ void process_dynamic_section()
 		s_type 			= GET_BYTES(fptr->shdr[i].sh_type);
 		if (s_type == SHT_DYNAMIC) { // .dynamic section exist
 			fptr->num_dsec  = s_size / se_size;
-			read_dynamic_sections(s_offset, se_size);
+			read_dynamic_section(s_offset, se_size);
 			MAX_BYTES stratb_link	= GET_BYTES(fptr->shdr[i].sh_link);
 			MAX_BYTES link_offset 	= GET_BYTES(fptr->shdr[stratb_link].sh_offset);
 			fptr->dsec_strtable_len = GET_BYTES(fptr->shdr[stratb_link].sh_size);

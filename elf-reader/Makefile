@@ -29,7 +29,9 @@ SOURCES 		= $(SOURCE_PATH)/common.c \
 					$(SOURCE_PATH)/dynamic-linking.c \
 					$(SOURCE_PATH)/symbol-info.c \
 					$(SOURCE_PATH)/dynamic-symbol-table.c \
+					$(SOURCE_PATH)/relocation.c \
 					$(SOURCE_PATH)/elf-reader.c
+
 OBJ_SUFFIX 		= o
 SOURCES_BARE    = $(notdir $(SOURCES))
 OBJECTS 		= ${SOURCES_BARE:%.c=.objects_native/%.$(OBJ_SUFFIX)}

@@ -239,6 +239,9 @@ typedef struct file_info {
 	RElf_Syminfo 	*dsyminfo; 			// dynamic symbol info sections
 	MAX_BYTES 		num_dsyminfo; 		// number of dynamic symbol info
 
+	RElf_Rela 		*rel; 				// relocation entries
+	MAX_BYTES 		num_rel;
+
 } file_info_t;
 
 extern file_info_t *fptr;
