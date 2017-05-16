@@ -165,3 +165,21 @@ void print_section_headers()
 	print_sections();
 	fprintf(stdout, ":: End Section Header (size :%llu) ::\n", GET_BYTES(fptr->ehdr.e_shentsize));
 }
+
+void cleanup_section_header()
+{
+	unsigned int i;
+	for (i=0; i<fptr->num_shdr; i++) {
+		free(fptr->shdr[i].sh_name);
+		free(fptr->shdr[i].sh_type);
+		free(fptr->shdr[i].sh_flags);
+		free(fptr->shdr[i].sh_addr);
+		free(fptr->shdr[i].sh_offset);
+		free(fptr->shdr[i].sh_size);
+		free(fptr->shdr[i].sh_link);
+		free(fptr->shdr[i].sh_info);
+		free(fptr->shdr[i].sh_addralign);
+		free(fptr->shdr[i].sh_entsize);
+	}
+	free(fptr->section_strtable);
+}

@@ -93,4 +93,19 @@ void print_dynamic_symbol_table()
 	}
 }
 
+void cleanup_dynamic_symbol_table()
+{
+	MAX_BYTES i;
+	for (i=0; i<fptr->num_dsym; i++) {
+		free(fptr->dsym[i].st_name);
+		free(fptr->dsym[i].st_value);
+		free(fptr->dsym[i].st_size);
+		free(fptr->dsym[i].st_info);
+		free(fptr->dsym[i].st_other);
+		free(fptr->dsym[i].st_shndx);
+	}
+	free(fptr->dsym);
+	free(fptr->dsym_strtable);
+}
+
 

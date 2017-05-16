@@ -64,3 +64,13 @@ void print_dynamic_symbol_info()
 {
 
 }
+
+void cleanup_symbol_info()
+{
+	unsigned int i;
+	for (i=0; i<fptr->num_dsyminfo; i++) {
+		free(fptr->dsyminfo[i].si_boundto);
+		free(fptr->dsyminfo[i].si_flags);
+	}
+	free(fptr->dsyminfo);
+}

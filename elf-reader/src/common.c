@@ -5,7 +5,7 @@ void put_field_size(unsigned char *addr, unsigned int len)
 	fptr->dict[fptr->dict_size].addr = addr;
 	fptr->dict[fptr->dict_size].len  = len;
 	fptr->dict_size++;
-	if (fptr->dict_size > MAX_DICT) {
+	if (fptr->dict_size >= MAX_DICT) {
 		fprintf(stderr, "Error: Maximum limit of dictionary reached increase this MAX_DICT  = %d\n", MAX_DICT);
 		exit(-1);
 	}

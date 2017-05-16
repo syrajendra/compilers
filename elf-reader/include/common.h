@@ -35,7 +35,7 @@ typedef struct dict {
 	MAX_BYTES 		offset;
 } dict_t;
 
-#define MAX_DICT 			2048
+#define MAX_DICT 			5000
 #define MAX_SECTION_HEADERS 128
 #define MAX_PROGRAM_HEADERS 128
 #define STT_RELC			8		/* Complex relocation expression */
@@ -294,14 +294,32 @@ void print_symbol_table();
 void process_dynamic_section();
 void print_dynamic_section();
 
+// Extra symbol info
+void process_dynamic_symbolinfo_section();
+
+// Symbol table
+void process_dynamic_symbol_table();
+void print_dynamic_symbol_table();
+
+// Relocation info
+void process_relocations();
+void print_relocation_section();
+
 char *get_section_type(MAX_BYTES sec_type);
 char *get_symbol_index_type (unsigned int type);
 char *get_symbol_visibility (unsigned int visibility);
 char *get_symbol_binding (unsigned int binding);
 char *get_symbol_type (unsigned int type);
-void print_dynamic_symbol_table();
-void process_dynamic_symbolinfo_section();
-void process_dynamic_symbol_table();
+
+// cleanup
+void cleanup_elf_header();
+void cleanup_section_header();
+void cleanup_program_header();
+void cleanup_symbol_table();
+void cleanup_dynamic_symbol_table();
+void cleanup_dynamic_section();
+void cleanup_symbol_info();
+void cleanup_relocation_info();
 
 #define GET_BYTES(field) get_bytes(field)
 

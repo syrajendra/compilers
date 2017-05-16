@@ -154,3 +154,14 @@ void print_relocation_section()
 		fprintf(stdout, "%10llx | %10llx | %18s | %10llx | %s + %llu\n", r_offset, r_info, r_type, sym_value, sym_name, r_addend);
 	}
 }
+
+void cleanup_relocation_info()
+{
+	MAX_BYTES i;
+	for (i=0; i<fptr->num_rel; i++) {
+		free(fptr->rel[i].r_offset);
+		free(fptr->rel[i].r_info);
+		if (fptr->rel[i].r_addend) free(fptr->rel[i].r_addend);
+	}
+	free(fptr->rel);
+}

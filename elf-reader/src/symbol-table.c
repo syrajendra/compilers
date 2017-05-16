@@ -220,3 +220,18 @@ void print_symbol_table()
 		}
 	}
 }
+
+void cleanup_symbol_table()
+{
+	MAX_BYTES i;
+	for (i=0; i<fptr->num_sym; i++) {
+		free(fptr->sym[i].st_name);
+		free(fptr->sym[i].st_value);
+		free(fptr->sym[i].st_size);
+		free(fptr->sym[i].st_info);
+		free(fptr->sym[i].st_other);
+		free(fptr->sym[i].st_shndx);
+	}
+	free(fptr->sym);
+	free(fptr->sym_strtable);
+}

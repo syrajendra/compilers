@@ -219,3 +219,21 @@ void print_elf_header()
 	print_section_header_table_info();
 	fprintf(stdout, ":: End of ELF Header (size : %llu bytes) ::\n", GET_BYTES(fptr->ehdr.e_ehsize));
 }
+
+void cleanup_elf_header()
+{
+	free(fptr->ehdr.e_ident);
+	free(fptr->ehdr.e_type);
+	free(fptr->ehdr.e_machine);
+	free(fptr->ehdr.e_version);
+	free(fptr->ehdr.e_entry);
+	free(fptr->ehdr.e_phoff);
+	free(fptr->ehdr.e_shoff);
+	free(fptr->ehdr.e_flags);
+	free(fptr->ehdr.e_ehsize);
+	free(fptr->ehdr.e_phentsize);
+	free(fptr->ehdr.e_phnum);
+	free(fptr->ehdr.e_shentsize);
+	free(fptr->ehdr.e_shnum);
+	free(fptr->ehdr.e_shstrndx);
+}

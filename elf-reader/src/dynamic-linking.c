@@ -187,3 +187,14 @@ void print_dynamic_section()
 		fprintf(stdout, "%#10llx | %10s | %s\n", d_tag, d_type, get_lib_name(d_tag, d_val, d_type));
 	}
 }
+
+void cleanup_dynamic_section()
+{
+	unsigned int i;
+	for (i=0; i<fptr->num_dsec; i++) {
+		free(fptr->dsec[i].d_tag);
+		free(fptr->dsec[i].d_un.d_val);
+	}
+	free(fptr->dsec);
+	free(fptr->dsec_strtable);
+}

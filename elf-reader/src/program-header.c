@@ -144,3 +144,17 @@ void print_program_headers()
 	fprintf(stdout, ":: End Program Header (size :%llu) ::\n", GET_BYTES(fptr->ehdr.e_phentsize));
 }
 
+void cleanup_program_header()
+{
+	unsigned int i;
+	for (i=0; i<fptr->num_phdr; i++) {
+		free(fptr->phdr[i].p_type);
+		free(fptr->phdr[i].p_flags);
+		free(fptr->phdr[i].p_offset);
+		free(fptr->phdr[i].p_vaddr);
+		free(fptr->phdr[i].p_paddr);
+		free(fptr->phdr[i].p_filesz);
+		free(fptr->phdr[i].p_memsz);
+		free(fptr->phdr[i].p_align);
+	}
+}

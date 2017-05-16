@@ -4,73 +4,16 @@
 
 file_info_t *fptr;
 
-void cleanup_structs()
-{
-	unsigned int i;
-	for (i=0; i<GET_BYTES(fptr->ehdr.e_phnum); i++) {
-		free(fptr->phdr[i].p_type);
-		free(fptr->phdr[i].p_flags);
-		free(fptr->phdr[i].p_offset);
-		free(fptr->phdr[i].p_vaddr);
-		free(fptr->phdr[i].p_paddr);
-		free(fptr->phdr[i].p_filesz);
-		free(fptr->phdr[i].p_memsz);
-		free(fptr->phdr[i].p_align);
-	}
-	for (i=0; i<GET_BYTES(fptr->ehdr.e_shnum); i++) {
-		free(fptr->shdr[i].sh_name);
-		free(fptr->shdr[i].sh_type);
-		free(fptr->shdr[i].sh_flags);
-		free(fptr->shdr[i].sh_addr);
-		free(fptr->shdr[i].sh_offset);
-		free(fptr->shdr[i].sh_size);
-		free(fptr->shdr[i].sh_link);
-		free(fptr->shdr[i].sh_info);
-		free(fptr->shdr[i].sh_addralign);
-		free(fptr->shdr[i].sh_entsize);
-	}
-	for (i=0; i<fptr->num_sym; i++) {
-		free(fptr->sym[i].st_name);
-		free(fptr->sym[i].st_value);
-		free(fptr->sym[i].st_size);
-		free(fptr->sym[i].st_info);
-		free(fptr->sym[i].st_other);
-		free(fptr->sym[i].st_shndx);
-	}
-	free(fptr->sym);
-	for (i=0; i<fptr->num_dsec; i++) {
-		free(fptr->dsec[i].d_tag);
-		free(fptr->dsec[i].d_un.d_val);
-	}
-	free(fptr->dsec);
-	for (i=0; i<fptr->num_dsyminfo; i++) {
-		free(fptr->dsyminfo[i].si_boundto);
-		free(fptr->dsyminfo[i].si_flags);
-	}
-	free(fptr->dsyminfo);
-	free(fptr->ehdr.e_ident);
-	free(fptr->ehdr.e_type);
-	free(fptr->ehdr.e_machine);
-	free(fptr->ehdr.e_version);
-	free(fptr->ehdr.e_entry);
-	free(fptr->ehdr.e_phoff);
-	free(fptr->ehdr.e_shoff);
-	free(fptr->ehdr.e_flags);
-	free(fptr->ehdr.e_ehsize);
-	free(fptr->ehdr.e_phentsize);
-	free(fptr->ehdr.e_phnum);
-	free(fptr->ehdr.e_shentsize);
-	free(fptr->ehdr.e_shnum);
-	free(fptr->ehdr.e_shstrndx);
-
-}
-
 void cleanup()
 {
-	cleanup_structs();
-	free(fptr->section_strtable);
-	free(fptr->sym_strtable);
-	free(fptr->dsec_strtable);
+	cleanup_elf_header();
+	cleanup_section_header();
+	cleanup_program_header();
+	cleanup_symbol_table();
+	cleanup_dynamic_symbol_table();
+	cleanup_dynamic_section();
+	cleanup_symbol_info();
+	cleanup_relocation_info();
 	close(fptr->fd);
 	munmap(fptr->mem, fptr->st.st_size);
 	free(fptr);
