@@ -35,6 +35,7 @@ typedef struct dict {
 	MAX_BYTES 		offset;
 } dict_t;
 
+#define PATH_MAX        	4096
 #define MAX_DICT 			5000
 #define MAX_SECTION_HEADERS 512
 #define MAX_PROGRAM_HEADERS 512

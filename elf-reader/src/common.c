@@ -70,11 +70,18 @@ int formated_fprintf(FILE *stream, const char *format, ...)
 	return ret;
 }
 
+void print_perror(const char *syscall, const char *str)
+{
+	char msg[PATH_MAX];
+	sprintf(msg, "ERROR: %s %s", syscall, str);
+	perror(msg);
+}
+
 void open_map_file()
 {
 	fptr->fd = open(fptr->path, O_RDONLY);
 	if (fptr->fd < 0) {
-		perror("open");
+		print_perror("open", fptr->path);
 		exit(-1);
 	}
 

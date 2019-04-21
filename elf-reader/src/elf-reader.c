@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
 	fptr = (file_info_t *) calloc(1, sizeof(file_info_t));
 	fptr->mem = NULL;
 
-	if (argc < 2) {
+	if (argc < 3) {
 		fprintf(stderr, "Usage:\n%s <options> <elf-file>\n", argv[0]);
 		exit(1);
 	}

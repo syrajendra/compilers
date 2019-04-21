@@ -64,7 +64,7 @@ void process_section_headers()
 		COPY_FIELD(fptr->shdr[i].sh_addralign);
 		COPY_FIELD(fptr->shdr[i].sh_entsize);
 	}
-	process_string_table();
+	if (fptr->num_shdr) process_string_table();
 }
 
 char *get_section_type(MAX_BYTES sec_type)
