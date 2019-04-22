@@ -113,7 +113,6 @@ void process_elf_header()
 	}
 
 	// Copy first 16 bytes as is
-	put_field_size(fptr->ehdr.e_ident, EI_NIDENT);
 	put_field_offset(fptr->ehdr.e_ident, offset);
 	memcpy(fptr->ehdr.e_ident, fptr->mem, EI_NIDENT);
 	offset += EI_NIDENT;
@@ -132,6 +131,16 @@ void process_elf_header()
 	COPY_FIELD(fptr->ehdr.e_shentsize);
 	COPY_FIELD(fptr->ehdr.e_shnum);
 	COPY_FIELD(fptr->ehdr.e_shstrndx);
+
+	if (GET_BYTES(fptr->ehdr.e_phnum) >= MAX_PROGRAM_HEADERS) {
+		fprintf(stderr, "Error: Maximum limit of program header reached increase this MAX_PROGRAM_HEADERS = %d\n", MAX_PROGRAM_HEADERS);
+		exit(-1);
+	}
+
+	if (GET_BYTES(fptr->ehdr.e_shnum) >= MAX_SECTION_HEADERS) {
+		fprintf(stderr, "Error: Maximum limit of section header reached increase this MAX_SECTION_HEADERS = %d\n", MAX_SECTION_HEADERS);
+		exit(-1);
+	}
 }
 
 void print_elf_type()

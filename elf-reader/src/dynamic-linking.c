@@ -179,12 +179,12 @@ void print_dynamic_section()
 {
 	MAX_BYTES i;
 	fprintf(stdout, "Number of dynamic sections : %llu \n", fptr->num_dsec);
-	fprintf(stdout, "%10s | %10s | %s\n", "Tag", "Type", "Name/Value");
+	fprintf(stdout, "%14s | %14s | %s\n", "Tag", "Type", "Name/Value");
 	for (i=0; i<fptr->num_dsec; i++) {
 		MAX_BYTES d_tag = GET_BYTES(fptr->dsec[i].d_tag);
 		MAX_BYTES d_val = GET_BYTES(fptr->dsec[i].d_un.d_val);
 		char *d_type 	= get_dynamic_type(d_tag);
-		fprintf(stdout, "%#10llx | %10s | %s\n", d_tag, d_type, get_lib_name(d_tag, d_val, d_type));
+		fprintf(stdout, "%#14llx | %14s | %s\n", d_tag, d_type, get_lib_name(d_tag, d_val, d_type));
 	}
 }
 

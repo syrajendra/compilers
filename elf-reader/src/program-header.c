@@ -2,11 +2,11 @@
 
 #define PROGRAM_STRUCT_ALLOCATE(i) \
 		{ \
-			ALLOCATE(phdr[i].p_type); 		\
-			ALLOCATE(phdr[i].p_offset); 	\
+			ALLOCATE(phdr[i].p_type); 	\
+			ALLOCATE(phdr[i].p_offset); \
 			ALLOCATE(phdr[i].p_vaddr); 	\
 			ALLOCATE(phdr[i].p_paddr); 	\
-			ALLOCATE(phdr[i].p_filesz); 	\
+			ALLOCATE(phdr[i].p_filesz); \
 			ALLOCATE(phdr[i].p_memsz); 	\
 			ALLOCATE(phdr[i].p_flags); 	\
 			ALLOCATE(phdr[i].p_align); 	\
@@ -17,6 +17,7 @@ void init_32_bit_program_struct()
 	Elf32_Phdr phdr[MAX_PROGRAM_HEADERS];
 	unsigned int i;
 	for (i=0; i<GET_BYTES(fptr->ehdr.e_phnum); i++) {
+		fprintf(stdout, "Program %d\n", i);
 		PROGRAM_STRUCT_ALLOCATE(i);
 	}
 }

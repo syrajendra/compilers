@@ -14,6 +14,7 @@
 #include <getopt.h>
 #include <inttypes.h>
 #include <ctype.h>
+#include <link.h> // data structure of r_debug & link_map
 
 #ifdef __linux__
 	#include "linux.h"
@@ -31,14 +32,15 @@
 
 typedef struct dict {
 	unsigned char 	*addr;
-	unsigned int 	 len;
+	unsigned int 	len;
 	MAX_BYTES 		offset;
+	char 			*fieldstr;
 } dict_t;
 
 #define PATH_MAX        	4096
-#define MAX_DICT 			5000
-#define MAX_SECTION_HEADERS 512
-#define MAX_PROGRAM_HEADERS 512
+#define MAX_DICT 			100000
+#define MAX_SECTION_HEADERS 1024
+#define MAX_PROGRAM_HEADERS 1024
 #define STT_RELC			8		/* Complex relocation expression */
 #define STT_SRELC			9		/* Signed Complex relocation expression */
 #define STT_REGISTER		13		/* global reg reserved to app. */
@@ -264,7 +266,7 @@ union {
 } d64;
 
 
-void put_field_size(unsigned char *addr, unsigned int len);
+void put_field_size(const char *fieldstr, unsigned char *addr, unsigned int len);
 void put_field_offset(unsigned char *addr, MAX_BYTES offset);
 unsigned int get_field_size(unsigned char *addr);
 MAX_BYTES get_field_offset(unsigned char *addr);
@@ -322,6 +324,7 @@ void cleanup_dynamic_symbol_table();
 void cleanup_dynamic_section();
 void cleanup_symbol_info();
 void cleanup_relocation_info();
+void cleanup_dict();
 
 #define GET_BYTES(field) get_bytes(field)
 
@@ -337,7 +340,7 @@ void cleanup_relocation_info();
 		{ \
 			fptr->x = (unsigned char *) calloc(sizeof(x), sizeof(unsigned char)); \
 			if (fptr->x) { \
-				put_field_size(fptr->x, sizeof(x)*sizeof(unsigned char)); \
+				put_field_size(#x, fptr->x, sizeof(x)*sizeof(unsigned char)); \
 			} else { \
 				fprintf(stderr, "Failed to calloc \n"); \
 				exit(-1); \

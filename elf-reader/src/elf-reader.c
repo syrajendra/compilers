@@ -14,6 +14,7 @@ void cleanup()
 	cleanup_dynamic_section();
 	cleanup_symbol_info();
 	cleanup_relocation_info();
+	cleanup_dict();
 	close(fptr->fd);
 	munmap(fptr->mem, fptr->st.st_size);
 	free(fptr);
@@ -95,8 +96,8 @@ int main(int argc, char *argv[])
 	process_relocations();
 
 	if (opt['f'] == 1)  print_file_info();
-	if (opt['a'] == 1)  print_all_headers();
 	if (opt['h'] == 1)  print_elf_header();
+	if (opt['a'] == 1)  print_all_headers();
 	if (opt['l'] == 1)  print_program_headers();
 	if (opt['S'] == 1)  print_section_headers();
 	if (opt['s'] == 1) {
