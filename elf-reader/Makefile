@@ -4,13 +4,13 @@ ARCH 			= $(shell uname -m)
 OS_ID 			= $(shell /volume/hab/$(OS)/bin/os-id)
 LLVM_VERSION 	= 7.0
 LLVM 			= llvm/$(LLVM_VERSION)
-COMPILER 		= $(LLVM)/current/bin/clang
+COMPILER 		= $(LLVM)/current/bin/clang++
 SYSROOT_PATH 	= /volume/compiler-images/sysroot
 EXE_NAME 		= elf-reader
 MKDIR 			= mkdir
 CC 				= $(HAB)/$(OS)/$(OS_ID)/$(ARCH)/$(COMPILER)
 GCC 			= $(CC)
-#GCC 			= /usr/bin/gcc
+#GCC 			= /usr/bin/g++
 
 BIN 			= bin
 INCLUDES 		= -Iinclude
@@ -20,21 +20,21 @@ CFLAGS 			= -c $(DEBUG) $(INCLUDES)
 LDFLAGS 		= -DDEBUG -g2
 VPATH           = src
 SOURCE_PATH     = src
-SOURCES 		= $(SOURCE_PATH)/common.c \
-					$(SOURCE_PATH)/host.c \
-					$(SOURCE_PATH)/elf-header.c \
-					$(SOURCE_PATH)/program-header.c \
-					$(SOURCE_PATH)/section-header.c \
-					$(SOURCE_PATH)/symbol-table.c \
-					$(SOURCE_PATH)/dynamic-linking.c \
-					$(SOURCE_PATH)/symbol-info.c \
-					$(SOURCE_PATH)/dynamic-symbol-table.c \
-					$(SOURCE_PATH)/relocation.c \
-					$(SOURCE_PATH)/elf-reader.c
+SOURCES 		= $(SOURCE_PATH)/common.cpp \
+					$(SOURCE_PATH)/host.cpp \
+					$(SOURCE_PATH)/elf-header.cpp \
+					$(SOURCE_PATH)/program-header.cpp \
+					$(SOURCE_PATH)/section-header.cpp \
+					$(SOURCE_PATH)/symbol-table.cpp \
+					$(SOURCE_PATH)/dynamic-linking.cpp \
+					$(SOURCE_PATH)/symbol-info.cpp \
+					$(SOURCE_PATH)/dynamic-symbol-table.cpp \
+					$(SOURCE_PATH)/relocation.cpp \
+					$(SOURCE_PATH)/elf-reader.cpp
 
 OBJ_SUFFIX 		= o
 SOURCES_BARE    = $(notdir $(SOURCES))
-OBJECTS 		= ${SOURCES_BARE:%.c=.objects_native/%.$(OBJ_SUFFIX)}
+OBJECTS 		= ${SOURCES_BARE:%.cpp=.objects_native/%.$(OBJ_SUFFIX)}
 BUILDS 			= native \
 				  amd64-unknown-freebsd10.1 \
 				  i386-unknown-freebsd10.1 \
@@ -47,7 +47,7 @@ BUILDS 			= native \
 
 all: native
 
-.objects_native/%.$(OBJ_SUFFIX): %.c
+.objects_native/%.$(OBJ_SUFFIX): %.cpp
 	@mkdir -p $(dir $@)
 	@echo Compiling: $<
 	$(GCC) $(CFLAGS) $(CROSS_FLAGS) -o $@ $<

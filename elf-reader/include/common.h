@@ -38,7 +38,7 @@ typedef struct dict {
 } dict_t;
 
 #define PATH_MAX        	4096
-#define MAX_DICT 			100000
+#define MAX_DICT 			1000000
 #define MAX_SECTION_HEADERS 1024
 #define MAX_PROGRAM_HEADERS 1024
 #define STT_RELC			8		/* Complex relocation expression */
@@ -309,11 +309,11 @@ void print_dynamic_symbol_table();
 void process_relocations();
 void print_relocation_section();
 
-char *get_section_type(MAX_BYTES sec_type);
-char *get_symbol_index_type (unsigned int type);
-char *get_symbol_visibility (unsigned int visibility);
-char *get_symbol_binding (unsigned int binding);
-char *get_symbol_type (unsigned int type);
+const char *get_section_type(MAX_BYTES sec_type);
+const char *get_symbol_index_type (unsigned int type);
+const char *get_symbol_visibility (unsigned int visibility);
+const char *get_symbol_binding (unsigned int binding);
+const char *get_symbol_type (unsigned int type);
 
 // cleanup
 void cleanup_elf_header();
