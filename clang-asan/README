@@ -1,0 +1,32 @@
+Scripts to build 
+1. llvm-10
+2. compiler-rt for arm & arm64
+3. pull sysroot
+
+Patches pulled:
+arm64: https://reviews.llvm.org/D32172
+mips: https://reviews.llvm.org/D49942
+
+References:
+https://github.com/freebsd/freebsd/blob/1d6e4247415d264485ee94b59fdbc12e0c566fd0/lib/libthr/arch/aarch64/include/pthread_md.h
+https://github.com/freebsd/freebsd/blob/1d6e4247415d264485ee94b59fdbc12e0c566fd0/lib/libthr/arch/arm/include/pthread_md.h
+
+Test:
+on RPI-3 board: 
+[syrajendra@rpi3-fbsd13 ~/asan]$ ./test-aarch64
+AddressSanitizer:DEADLYSIGNAL
+=================================================================
+==3107==ERROR: AddressSanitizer: SEGV on unknown address 0x5ffffffffd44 (pc 0x0000002b467c bp 0xffffffffeb20 sp 0xffffffffea20 T0)
+==3107==The signal is caused by a UNKNOWN memory access.
+    #0 0x2b467c in main /home/syrajendra/Rajendra/compiler/llvm-10/asan/test-prgs/./test1.c:4
+    #1 0x23e1c0 in __start /usr/src/lib/csu/aarch64/crt1_c.c:70:7
+    #2 0x402ead94  /usr/src/libexec/rtld-elf/aarch64/rtld_start.S:41
+
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: SEGV /home/syrajendra/Rajendra/compiler/llvm-10/asan/test-prgs/./test1.c:4 in main
+==3107==ABORTING
+
+syrajendra@rpi1-fbsd13:~/asan $ ASAN_OPTIONS=verbosity=1:debug=1:print_stats=1: ./test-armv6
+Illegal instruction (core dumped)
+
+

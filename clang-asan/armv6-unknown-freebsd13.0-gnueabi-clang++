@@ -1,0 +1,5 @@
+#!/bin/sh
+
+TRIPLE=armv6-unknown-freebsd13.0-gnueabi
+COMP_DIR=/home/syrajendra/Rajendra/compiler/llvm-10/install/bin
+$COMP_DIR/clang++ -fuse-ld=lld --target=$TRIPLE --sysroot=/home/syrajendra/Rajendra/compiler/sysroot/$TRIPLE "$@"

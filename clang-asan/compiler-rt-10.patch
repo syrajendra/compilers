@@ -1,0 +1,256 @@
+diff -Naur asan/compiler-rt/cmake/config-ix.cmake llvm-project/compiler-rt/cmake/config-ix.cmake
+--- asan/compiler-rt/cmake/config-ix.cmake	2020-07-22 12:28:10.982447085 +0530
++++ llvm-project/compiler-rt/cmake/config-ix.cmake	2020-07-14 19:41:29.160307389 +0530
+@@ -576,11 +576,7 @@
+ endif()
+ message(STATUS "Compiler-RT supported architectures: ${COMPILER_RT_SUPPORTED_ARCH}")
+ 
+-if ("${COMPILER_RT_DEFAULT_TARGET_TRIPLE}" MATCHES ".*freebsd.*")
+-set(ALL_SANITIZERS asan;msan;tsan;safestack;cfi;ubsan_minimal)
+-else()
+ set(ALL_SANITIZERS asan;dfsan;msan;hwasan;tsan;safestack;cfi;scudo;ubsan_minimal;gwp_asan)
+-endif()
+ set(COMPILER_RT_SANITIZERS_TO_BUILD all CACHE STRING
+     "sanitizers to build if supported on the target (all;${ALL_SANITIZERS})")
+ list_replace(COMPILER_RT_SANITIZERS_TO_BUILD all "${ALL_SANITIZERS}")
+diff -Naur asan/compiler-rt/lib/asan/asan_mapping.h llvm-project/compiler-rt/lib/asan/asan_mapping.h
+--- asan/compiler-rt/lib/asan/asan_mapping.h	2020-07-22 12:04:50.078209071 +0530
++++ llvm-project/compiler-rt/lib/asan/asan_mapping.h	2020-07-14 18:59:53.802970767 +0530
+@@ -168,7 +168,6 @@
+ static const u64 kSPARC64_ShadowOffset64 = 1ULL << 43;  // 0x80000000000
+ static const u64 kFreeBSD_ShadowOffset32 = 1ULL << 30;  // 0x40000000
+ static const u64 kFreeBSD_ShadowOffset64 = 1ULL << 46;  // 0x400000000000
+-static const u64 kFreeBSD_AArch64_ShadowOffset64 = 1ULL << 47; // 0x800000000000
+ static const u64 kNetBSD_ShadowOffset32 = 1ULL << 30;  // 0x40000000
+ static const u64 kNetBSD_ShadowOffset64 = 1ULL << 46;  // 0x400000000000
+ static const u64 kWindowsShadowOffset32 = 3ULL << 28;  // 0x30000000
+@@ -207,8 +206,6 @@
+ #else
+ #  if SANITIZER_IOS
+ #    define SHADOW_OFFSET __asan_shadow_memory_dynamic_address
+-#  elif defined(__aarch64__) && SANITIZER_FREEBSD
+-#    define SHADOW_OFFSET kFreeBSD_AArch64_ShadowOffset64
+ #  elif defined(__aarch64__)
+ #    define SHADOW_OFFSET kAArch64_ShadowOffset64
+ #  elif defined(__powerpc64__)
+diff -Naur asan/compiler-rt/lib/builtins/CMakeLists.txt llvm-project/compiler-rt/lib/builtins/CMakeLists.txt
+--- asan/compiler-rt/lib/builtins/CMakeLists.txt	2020-07-22 15:11:45.642411377 +0530
++++ llvm-project/compiler-rt/lib/builtins/CMakeLists.txt	2020-07-14 19:41:29.160307389 +0530
+@@ -626,7 +626,7 @@
+       # Needed for clear_cache on debug mode, due to r7's usage in inline asm.
+       # Release mode already sets it via -O2/3, Debug mode doesn't.
+       if (${arch} STREQUAL "armhf")
+-        list(APPEND BUILTIN_CFLAGS -fomit-frame-pointer)
++        list(APPEND BUILTIN_CFLAGS -fomit-frame-pointer -DCOMPILER_RT_ARMHF_TARGET)
+       endif()
+ 
+       # For RISCV32, we must force enable int128 for compiling long
+diff -Naur asan/compiler-rt/lib/sanitizer_common/sanitizer_linux.cpp llvm-project/compiler-rt/lib/sanitizer_common/sanitizer_linux.cpp
+--- asan/compiler-rt/lib/sanitizer_common/sanitizer_linux.cpp	2020-07-22 14:29:32.485424650 +0530
++++ llvm-project/compiler-rt/lib/sanitizer_common/sanitizer_linux.cpp	2020-07-14 19:41:29.180307741 +0530
+@@ -1326,7 +1326,7 @@
+                        : "memory", "$29" );
+   return res;
+ }
+-#elif defined(__aarch64__) && SANITIZER_LINUX
++#elif defined(__aarch64__)
+ uptr internal_clone(int (*fn)(void *), void *child_stack, int flags, void *arg,
+                     int *parent_tidptr, void *newtls, int *child_tidptr) {
+   long long res;
+@@ -1727,11 +1727,6 @@
+ #endif
+ 
+ #if defined(__aarch64__)
+-# if SANITIZER_FREEBSD
+-static bool Aarch64GetESR(ucontext_t *ucontext, u64 *esr) {
+-  return false;
+-}
+-#else
+ // Android headers in the older NDK releases miss this definition.
+ struct __sanitizer_esr_context {
+   struct _aarch64_ctx head;
+@@ -1753,7 +1748,6 @@
+   return false;
+ }
+ #endif
+-#endif
+ 
+ #if SANITIZER_OPENBSD
+ using Context = sigcontext;
+@@ -1828,13 +1822,9 @@
+   }
+   return SignalContext::UNKNOWN;
+ #elif defined(__arm__)
+-  #if SANITIZER_FREEBSD
+-    return UNKNOWN;
+-  #else
+-    static const uptr FSR_WRITE = 1U << 11;
+-    uptr fsr = ucontext->uc_mcontext.error_code;
+-    return fsr & FSR_WRITE ? WRITE : READ;
+-  #endif
++  static const uptr FSR_WRITE = 1U << 11;
++  uptr fsr = ucontext->uc_mcontext.error_code;
++  return fsr & FSR_WRITE ? WRITE : READ;
+ #elif defined(__aarch64__)
+   static const u64 ESR_ELx_WNR = 1U << 6;
+   u64 esr;
+@@ -1881,27 +1871,14 @@
+   *sp = _UC_MACHINE_SP(ucontext);
+ #elif defined(__arm__)
+   ucontext_t *ucontext = (ucontext_t*)context;
+-  #if SANITIZER_FREEBSD
+-    *pc = ucontext->uc_mcontext.__gregs[_REG_PC];
+-    *bp = ucontext->uc_mcontext.__gregs[_REG_FP];
+-    *sp = ucontext->uc_mcontext.__gregs[_REG_SP];
+-  #else
+-    *pc = ucontext->uc_mcontext.arm_pc;
+-    *bp = ucontext->uc_mcontext.arm_fp;
+-    *sp = ucontext->uc_mcontext.arm_sp;
+-  #endif
++  *pc = ucontext->uc_mcontext.arm_pc;
++  *bp = ucontext->uc_mcontext.arm_fp;
++  *sp = ucontext->uc_mcontext.arm_sp;
+ #elif defined(__aarch64__)
+-  # if SANITIZER_FREEBSD
+-    ucontext_t *ucontext = (ucontext_t*)context;
+-    *pc = ucontext->uc_mcontext.mc_gpregs.gp_elr;
+-    *bp = ucontext->uc_mcontext.mc_gpregs.gp_x[29];
+-    *sp = ucontext->uc_mcontext.mc_gpregs.gp_sp;
+-  # else
+-    ucontext_t *ucontext = (ucontext_t*)context;
+-    *pc = ucontext->uc_mcontext.pc;
+-    *bp = ucontext->uc_mcontext.regs[29];
+-    *sp = ucontext->uc_mcontext.sp;
+-  #endif
++  ucontext_t *ucontext = (ucontext_t*)context;
++  *pc = ucontext->uc_mcontext.pc;
++  *bp = ucontext->uc_mcontext.regs[29];
++  *sp = ucontext->uc_mcontext.sp;
+ #elif defined(__hppa__)
+   ucontext_t *ucontext = (ucontext_t*)context;
+   *pc = ucontext->uc_mcontext.sc_iaoq[0];
+diff -Naur asan/compiler-rt/lib/sanitizer_common/sanitizer_linux_libcdep.cpp llvm-project/compiler-rt/lib/sanitizer_common/sanitizer_linux_libcdep.cpp
+--- asan/compiler-rt/lib/sanitizer_common/sanitizer_linux_libcdep.cpp	2020-07-22 13:09:38.622054184 +0530
++++ llvm-project/compiler-rt/lib/sanitizer_common/sanitizer_linux_libcdep.cpp	2020-07-14 19:41:29.180307741 +0530
+@@ -387,12 +387,6 @@
+ # elif defined(__x86_64__)
+   // sysarch(AMD64_GET_FSBASE, segbase);
+   __asm __volatile("movq %%fs:0, %0" : "=r" (segbase));
+-# elif defined(__aarch64__)
+-  // implement TLS Variant I
+-  __asm __volatile("mrs %0, tpidr_el0" : "=r" (segbase));
+-# elif defined(__arm__)
+-  // implement TLS Variant I
+-  __asm __volatile("mrc  p15, 0, %0, c13, c0, 3"   : "=r" (segbase));
+ # else
+ #  error "unsupported CPU arch"
+ # endif
+@@ -400,26 +394,8 @@
+ }
+ 
+ uptr ThreadSelf() {
+-  #if defined(__aarch64__) || defined(__arm__)
+-    return (uptr)ThreadSelfSegbase()[1];
+-  #else
+-    return (uptr)ThreadSelfSegbase()[2];
+-  #endif
++  return (uptr)ThreadSelfSegbase()[2];
+ }
+-
+-#if defined(__aarch64__) || defined(__arm__)
+-int GetSizeFromHdr(struct dl_phdr_info *info, size_t size, void *data) {
+-  const Elf_Phdr *hdr = info->dlpi_phdr;
+-  const Elf_Phdr *last_hdr = hdr + info->dlpi_phnum;
+-  for (; hdr != last_hdr; ++hdr) {
+-    if (hdr->p_type == PT_TLS && info->dlpi_tls_modid == 1) {
+-      *(uptr*)data = hdr->p_memsz;
+-      break;
+-    }
+-  }
+-  return 0;
+-}
+-#endif
+ #endif  // SANITIZER_FREEBSD
+ 
+ #if SANITIZER_NETBSD
+@@ -466,21 +442,6 @@
+   *addr = 0;
+   *size = 0;
+   if (segbase != 0) {
+-# if defined(__aarch64__) || defined(__arm__)
+-    // Variant I
+-    // 
+-    // dtv = segbase[0];
+-    // dtv[2] = base of TLS block of the main program
+-    void **dtv = (void**) segbase[0];
+-    if ((uptr) dtv[1] >= 2) {
+-      // Find size (p_memsz) of TLS block of the main program.
+-      dl_iterate_phdr(GetSizeFromHdr, size);
+-      if (*size != 0)
+-        *addr = (uptr) dtv[2];
+-    }
+-#else
+-    // Variant II
+-    //    
+     // tcbalign = 16
+     // tls_size = round(tls_static_space, tcbalign);
+     // dtv = segbase[1];
+@@ -488,7 +449,6 @@
+     void **dtv = (void**) segbase[1];
+     *addr = (uptr) dtv[2];
+     *size = (*addr == 0) ? 0 : ((uptr) segbase[0] - (uptr) dtv[2]);
+-#endif
+   }
+ #elif SANITIZER_NETBSD
+   struct tls_tcb * const tcb = ThreadSelfTlsTcb();
+diff -Naur asan/compiler-rt/lib/sanitizer_common/sanitizer_platform_limits_posix.cpp llvm-project/compiler-rt/lib/sanitizer_common/sanitizer_platform_limits_posix.cpp
+--- asan/compiler-rt/lib/sanitizer_common/sanitizer_platform_limits_posix.cpp	2020-07-22 12:23:15.069573960 +0530
++++ llvm-project/compiler-rt/lib/sanitizer_common/sanitizer_platform_limits_posix.cpp	2020-07-14 19:41:29.184307811 +0530
+@@ -87,10 +87,10 @@
+ #undef IOC_DIRMASK
+ #endif
+ 
+-#if SANITIZER_LINUX || SANITIZER_FREEBSD
++#if SANITIZER_LINUX
+ # include <utime.h>
+ # include <sys/ptrace.h>
+-# if SANITIZER_LINUX && (defined(__mips64) || defined(__aarch64__) || defined(__arm__))
++# if defined(__mips64) || defined(__aarch64__) || defined(__arm__)
+ #  include <asm/ptrace.h>
+ #  ifdef __arm__
+ typedef struct user_fpregs elf_fpregset_t;
+diff -Naur asan/compiler-rt/lib/sanitizer_common/sanitizer_syscall_generic.inc llvm-project/compiler-rt/lib/sanitizer_common/sanitizer_syscall_generic.inc
+--- asan/compiler-rt/lib/sanitizer_common/sanitizer_syscall_generic.inc	2020-07-22 12:19:55.594505605 +0530
++++ llvm-project/compiler-rt/lib/sanitizer_common/sanitizer_syscall_generic.inc	2020-07-14 18:59:53.870971502 +0530
+@@ -19,8 +19,7 @@
+ # define SYSCALL(name) __NR_ ## name
+ #endif
+ 
+-#if (SANITIZER_FREEBSD || SANITIZER_MAC) && (defined(__x86_64__) || \
+-      defined(__aarch64__))
++#if defined(__x86_64__) && (SANITIZER_FREEBSD || SANITIZER_MAC)
+ # define internal_syscall __syscall
+ # else
+ # define internal_syscall syscall
+diff -Naur asan/compiler-rt/lib/sanitizer_common/sanitizer_unwind_linux_libcdep.cpp llvm-project/compiler-rt/lib/sanitizer_common/sanitizer_unwind_linux_libcdep.cpp
+--- asan/compiler-rt/lib/sanitizer_common/sanitizer_unwind_linux_libcdep.cpp	2020-07-22 14:08:14.986101297 +0530
++++ llvm-project/compiler-rt/lib/sanitizer_common/sanitizer_unwind_linux_libcdep.cpp	2020-07-14 18:59:53.874971546 +0530
+@@ -48,10 +48,6 @@
+ unwind_backtrace_signal_arch_func unwind_backtrace_signal_arch;
+ } // extern "C"
+ 
+-#if defined(__arm__) && SANITIZER_FREEBSD
+-#define UNWIND_STOP _URC_OK
+-#define UNWIND_CONTINUE _URC_CONTINUE_UNWIND
+-#else
+ #if defined(__arm__) && !SANITIZER_NETBSD
+ // NetBSD uses dwarf EH
+ #define UNWIND_STOP _URC_END_OF_STACK
+@@ -60,7 +56,6 @@
+ #define UNWIND_STOP _URC_NORMAL_STOP
+ #define UNWIND_CONTINUE _URC_NO_REASON
+ #endif
+-#endif
+ 
+ uptr Unwind_GetIP(struct _Unwind_Context *ctx) {
+ #if defined(__arm__) && !SANITIZER_MAC
