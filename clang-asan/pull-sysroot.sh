@@ -10,13 +10,13 @@ cat ~/.ssh/id_rsa.pub | ssh $RMACHINE 'cat >> ~/.ssh/authorized_keys'
 TRIPLE=`ssh $RMACHINE "clang -dumpmachine"`
 mkdir -p $TRIPLE
 cd $TRIPLE
-rsync -arvz 192.168.1.21:/lib .
-rsync -arvz 192.168.1.21:/libexec .
+rsync -arvz $RMACHINE:/lib .
+rsync -arvz $RMACHINE:/libexec .
 mkdir usr
 cd usr
-rsync -arvz 192.168.1.21:/usr/include .
-rsync -arvz 192.168.1.21:/usr/libexec .
-rsync -arvz 192.168.1.21:/usr/libdata .
-rsync -arvz 192.168.1.21:/usr/lib .
+rsync -arvz $RMACHINE:/usr/include .
+rsync -arvz $RMACHINE:/usr/libexec .
+rsync -arvz $RMACHINE:/usr/libdata .
+rsync -arvz $RMACHINE:/usr/lib .
 
 
