@@ -132,9 +132,14 @@ make -j4
 make install
 fi
 
-TARGETS="x86_64-unknown-freebsd12.1 x86_64-linux-gnu"
-TARGET="x86_64-linux-gnu"    
+TARGETS="x86_64-unknown-freebsd12.1 \
+i386-unknown-freebsd12.1 \
+aarch64-unknown-freebsd12.1 \
+armv6-unknown-freebsd12.1-gnueabihf \
+armv7-unknown-freebsd12.1-gnueabihf \
+x86_64-linux-gnu"
 
+for TARGET in $TARGETS; do
 if [ ! -f $INSTALL_DIR/$TARGET/bin/ld ]; then
 COMP=binutils-${BINUTILS_VERSION}
 COMP_SRC=$SRC_DIR/$COMP
@@ -223,4 +228,4 @@ make install
 echo "glibc skipped"
 ;;
 esac
-
+done
